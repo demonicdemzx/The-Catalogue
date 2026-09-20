@@ -11,10 +11,6 @@ the device you use and never leave it.
 | `manifest.webmanifest` | Install details: name, icons, colors |
 | `icons/` | App icons |
 
-## Try it on your computer
-
-Run this inside the folder, then open <http://localhost:8000>:
-
 ```
 python3 -m http.server 8000
 ```
