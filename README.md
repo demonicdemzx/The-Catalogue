@@ -1,6 +1,6 @@
-# The Catalog
+# The Catalogue
 
-A private catalog for your personal library, packaged as an installable web app (PWA).
+A private catalogue for your personal library, packaged as an installable web app (PWA).
 It has no server, no account and no tracking. Your books are stored in the browser on
 the device you use and never leave it.
 
@@ -18,10 +18,6 @@ Run this inside the folder, then open <http://localhost:8000>:
 ```
 python3 -m http.server 8000
 ```
-
-In Chrome or Edge, click the install icon in the address bar to add it as an app.
-(Opening `index.html` by double-click works as a plain page, but a PWA can only be
-installed from `localhost` or an `https://` address.)
 
 ## Put it on your phone
 
