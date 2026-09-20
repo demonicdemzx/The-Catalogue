@@ -11,9 +11,17 @@ the device you use and never leave it.
 | `manifest.webmanifest` | Install details: name, icons, colors |
 | `icons/` | App icons |
 
+## Try it on your computer
+
+Run this inside the folder, then open <http://localhost:8000>:
+
 ```
 python3 -m http.server 8000
 ```
+
+In Chrome or Edge, click the install icon in the address bar to add it as an app.
+(Opening `index.html` by double-click works as a plain page, but a PWA can only be
+installed from `localhost` or an `https://` address.)
 
 ## Put it on your phone
 
@@ -45,7 +53,7 @@ Then open the address on the phone and install it:
   Safari, so install first and then add or restore your books. Safari can also clear
   storage for sites you haven't opened in about a week; apps on the Home Screen are not affected.
 - **Import:** **Import from CSV** reads a Goodreads export (My Books, Import/Export,
-  Export Library) or a CSV saved by **Export to CSV**. Books already in the catalog
+  Export Library) or a CSV saved by **Export to CSV**. Books already in the catalogue
   (same title and author) are not duplicated.
 
 ## Updating the app

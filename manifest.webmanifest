@@ -1,7 +1,7 @@
 {
-  "name": "The Catalog",
-  "short_name": "Catalog",
-  "description": "A private catalog for your personal library. Works offline; your books stay on your device.",
+  "name": "The Catalogue",
+  "short_name": "Catalogue",
+  "description": "A private catalogue for your personal library. Works offline; your books stay on your device.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

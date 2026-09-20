@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Catalog</title>
-<meta name="description" content="A private catalog for your personal library. Works offline; your books stay on your device.">
-<meta name="application-name" content="The Catalog">
+<title>The Catalogue</title>
+<meta name="description" content="A private catalogue for your personal library. Works offline; your books stay on your device.">
+<meta name="application-name" content="The Catalogue">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#EDE3CA">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#131C22">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Catalog">
+<meta name="apple-mobile-web-app-title" content="Catalogue">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
@@ -412,7 +412,7 @@
 
 <header>
   <div class="drawer-front">
-    <h1>The Catalog</h1>
+    <h1>The Catalogue</h1>
     <div class="header-right">
       <div class="save-status type-label" id="saveStatus"><span class="save-dot" id="saveDot"></span><span id="saveText">Loading&hellip;</span></div>
       <div class="tally type-label" id="tally"></div>
@@ -446,7 +446,7 @@
     </div>
     <div class="rail-group rail-tools" id="installGroup" hidden>
       <h2>App</h2>
-      <button class="rail-btn" id="installBtn">Install The Catalog</button>
+      <button class="rail-btn" id="installBtn">Install The Catalogue</button>
     </div>
   </aside>
 
@@ -524,12 +524,12 @@
 <div class="overlay" id="importOverlay">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
     <h2 id="importTitle">Import from CSV</h2>
-    <p class="hint">Choose a CSV exported from Goodreads (My Books &rarr; Import/Export &rarr; Export Library) or from The Catalog.</p>
+    <p class="hint">Choose a CSV exported from Goodreads (My Books &rarr; Import/Export &rarr; Export Library) or from The Catalogue.</p>
     <ul class="hint-list">
-      <li>Books already in your catalog (matched by title + author) won't be duplicated &mdash; if the file has genres they're missing, those get added in.</li>
+      <li>Books already in your catalogue (matched by title + author) won't be duplicated &mdash; if the file has genres they're missing, those get added in.</li>
       <li>Goodreads shelves map to Want to read / Reading / Read.</li>
       <li>Your non-standard bookshelves (anything besides to-read/currently-reading/read) come in as genres, comma-separated.</li>
-      <li>Files exported from The Catalog keep their genre, year, status, rating and notes.</li>
+      <li>Files exported from The Catalogue keep their genre, year, status, rating and notes.</li>
     </ul>
     <div id="importResult" class="hint" role="status" style="display:none;"></div>
     <div class="modal-actions">
@@ -570,6 +570,8 @@
   var filterGenre = 'all';
 
   // ---------- storage ----------
+  // The storage names below ("the-catalog", "catalog:...") keep their original spelling on purpose:
+  // renaming them would hide books that earlier versions already saved on a device.
   // Books live in IndexedDB, one record per book, so two open windows can't overwrite each other.
   // If IndexedDB is blocked (some private modes) it falls back to localStorage, then to memory only.
 
@@ -745,7 +747,7 @@
     return '';
   }
 
-  // Understands Goodreads' export and The Catalog's own CSV export (matched by column names).
+  // Understands Goodreads' export and The Catalogue's own CSV export (matched by column names).
   function mapCsvRow(row) {
     var lower = {};
     Object.keys(row).forEach(function (k) { lower[k.trim().toLowerCase()] = row[k]; });
@@ -1159,7 +1161,7 @@
 
   document.getElementById('deleteBtn').addEventListener('click', function () {
     if (!editingId) return;
-    showConfirm('Remove this book from the catalog?').then(function (yes) {
+    showConfirm('Remove this book from the catalogue?').then(function (yes) {
       if (yes) { deleteBook(editingId); closeModal(); }
     });
   });
@@ -1200,7 +1202,7 @@
 
   function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
 
-  // ---------- CSV import (Goodreads or The Catalog) ----------
+  // ---------- CSV import (Goodreads or The Catalogue) ----------
 
   var csvFile = document.getElementById('csvFile');
   var importResult = document.getElementById('importResult');
@@ -1304,7 +1306,7 @@
 
   function buildBackupJson() {
     return JSON.stringify({
-      app: 'the-catalog',
+      app: 'the-catalog',   // internal marker; keeps its original spelling so older backups still restore
       version: 1,
       exportedAt: new Date().toISOString(),
       books: visibleBooks().sort(function (a, b) { return (a.addedAt || 0) - (b.addedAt || 0); })
@@ -1317,7 +1319,7 @@
 
   document.getElementById('backupBtn').addEventListener('click', function () {
     if (visibleBooks().length === 0) { showToast('Nothing to back up yet.'); return; }
-    saveFile('the-catalog-backup-' + localDateStamp() + '.json', buildBackupJson(), 'application/json').then(function (saved) {
+    saveFile('the-catalogue-backup-' + localDateStamp() + '.json', buildBackupJson(), 'application/json').then(function (saved) {
       if (saved) { markBackedUp(); showToast('Backup saved'); }
     }).catch(exportFailed);
   });
@@ -1325,8 +1327,8 @@
   document.getElementById('exportBtn').addEventListener('click', function () {
     if (visibleBooks().length === 0) { showToast('Nothing to export yet.'); return; }
     // The leading byte-order mark makes Excel read accents and non-Latin names correctly.
-    saveFile('the-catalog-' + localDateStamp() + '.csv', '\uFEFF' + buildCsv(), 'text/csv;charset=utf-8').then(function (saved) {
-      if (saved) { markBackedUp(); showToast('Catalog exported'); }
+    saveFile('the-catalogue-' + localDateStamp() + '.csv', '\uFEFF' + buildCsv(), 'text/csv;charset=utf-8').then(function (saved) {
+      if (saved) { markBackedUp(); showToast('Catalogue exported'); }
     }).catch(exportFailed);
   });
 
@@ -1366,7 +1368,7 @@
     var file = backupFile.files && backupFile.files[0];
     if (!file) return;
     readText(file).then(function (raw) {
-      var notBackup = new Error('That file isn\u2019t a Catalog backup.');
+      var notBackup = new Error('That file isn\u2019t a Catalogue backup.');
       var data;
       try { data = JSON.parse(raw); } catch (e) { throw notBackup; }
       var list = Array.isArray(data) ? data : (data && data.books);
@@ -1390,7 +1392,7 @@
       var summary = [];
       if (toAdd.length) summary.push(plural(toAdd.length, 'new book'));
       if (toUpdate.length) summary.push(plural(toUpdate.length, 'book') + ' with newer edits');
-      return showConfirm('Restore ' + summary.join(' and ') + ' from this backup?\n\nNothing already in your catalog will be removed.',
+      return showConfirm('Restore ' + summary.join(' and ') + ' from this backup?\n\nNothing already in your catalogue will be removed.',
         { ok: 'Restore' }).then(function (yes) {
         if (!yes) return;
         var records = toAdd.concat(toUpdate);
@@ -1427,7 +1429,7 @@
   window.addEventListener('appinstalled', function () {
     installEvent = null;
     installGroup.hidden = true;
-    showToast('The Catalog is installed');
+    showToast('The Catalogue is installed');
   });
 
   // iPhones and iPads have no install prompt, so show the steps instead.
@@ -1483,7 +1485,7 @@
     launchActions();
   }).catch(function (err) {
     console.error(err);
-    showBanner('The catalog couldn\u2019t be opened' + (err && err.message ? ': ' + err.message : '.'));
+    showBanner('The catalogue couldn\u2019t be opened' + (err && err.message ? ': ' + err.message : '.'));
   });
 
   registerServiceWorker();

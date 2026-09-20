@@ -1,4 +1,4 @@
-/* The Catalog: service worker.
+/* The Catalogue: service worker.
  *
  * Makes the app open instantly and work with no connection.
  *  - The app files are saved at install time, then served from the saved copy.
@@ -11,6 +11,7 @@
  * Bump VERSION if you change the SHELL list or this file's logic.
  */
 const VERSION = 'v1';
+// Cache names keep their original spelling so existing installs clean up their old copies correctly.
 const SHELL_CACHE = 'catalog-shell-' + VERSION;
 const FONT_CACHE = 'catalog-fonts';
 
@@ -84,7 +85,7 @@ async function savedThenRefresh(event, target) {
     return saved;
   }
   const response = await refresh;
-  return response || new Response('The Catalog is offline and this file was never saved.', {
+  return response || new Response('The Catalogue is offline and this file was never saved.', {
     status: 503,
     headers: { 'Content-Type': 'text/plain; charset=utf-8' }
   });
