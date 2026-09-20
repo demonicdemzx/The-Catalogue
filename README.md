@@ -1,6 +1,6 @@
 # The Catalogue
 
-A private catalogue me.
+A private catalogue for me.
 
 | File | What it is |
 | --- | --- |
