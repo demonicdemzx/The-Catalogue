@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Catalog</title>
+<meta name="description" content="A private catalog for your personal library. Works offline; your books stay on your device.">
+<meta name="application-name" content="The Catalog">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#EDE3CA">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#131C22">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Catalog">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2A2118;
+    --paper: #F1E7CE;
+    --paper-2: #E6D8B8;
+    --paper-edge: #D8C69C;
+    --brass: #96652E;
+    --burgundy: #6B2737;
+    --sage: #4C6650;
+    --bg: #EDE3CA;
+    --bg-2: #E2D3AC;
+    --text-on-bg: #2A2118;
+    --muted: #6B5D45;
+    --shadow: rgba(42, 33, 24, 0.18);
+    --rule: rgba(42, 33, 24, 0.22);
+    --amber: #96652E;
+    --good: #4C6650;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #EDE3CA;
+      --paper: #23303A;
+      --paper-2: #1C2830;
+      --paper-edge: #16212A;
+      --brass: #C89A5C;
+      --burgundy: #C97A8A;
+      --sage: #8FB89A;
+      --bg: #131C22;
+      --bg-2: #0E151A;
+      --text-on-bg: #EDE3CA;
+      --muted: #9CA9AC;
+      --shadow: rgba(0, 0, 0, 0.45);
+      --rule: rgba(237, 227, 202, 0.18);
+      --amber: #C89A5C;
+      --good: #8FB89A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #EDE3CA;
+    --paper: #23303A;
+    --paper-2: #1C2830;
+    --paper-edge: #16212A;
+    --brass: #C89A5C;
+    --burgundy: #C97A8A;
+    --sage: #8FB89A;
+    --bg: #131C22;
+    --bg-2: #0E151A;
+    --text-on-bg: #EDE3CA;
+    --muted: #9CA9AC;
+    --shadow: rgba(0, 0, 0, 0.45);
+    --rule: rgba(237, 227, 202, 0.18);
+    --amber: #C89A5C;
+    --good: #8FB89A;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    background-attachment: fixed;
+    color: var(--text-on-bg);
+    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+    min-height: 100vh;
+  }
+
+  .type-label { font-family: 'Courier Prime', 'Courier New', monospace; }
+
+  header {
+    padding: 2.5rem 1.5rem 1.25rem;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  .drawer-front {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-bottom: 2px solid var(--rule);
+    padding-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .tally { font-family: 'Courier Prime', monospace; font-size: 0.85rem; color: var(--muted); }
+
+  .save-status {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.72rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted);
+  }
+  .save-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .save-dot.ok { background: var(--good); }
+  .save-dot.pending { background: var(--amber); }
+
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 1.5rem 1.5rem 5rem;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 2rem;
+  }
+
+  .rail { display: flex; flex-direction: column; gap: 1.75rem; }
+
+  .rail-group h2 {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 0.6rem;
+    font-weight: 700;
+  }
+
+  .tab-list { display: flex; flex-direction: column; gap: 0.35rem; }
+
+  .tab {
+    text-align: left;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    padding: 0.45rem 0.7rem;
+    font-family: 'Lora', serif;
+    font-size: 0.95rem;
+    color: var(--text-on-bg);
+    cursor: pointer;
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .tab:hover { background: var(--rule); }
+  .tab.active { border-left-color: var(--brass); background: var(--rule); font-weight: 600; }
+  .tab .n { font-family: 'Courier Prime', monospace; font-size: 0.78rem; color: var(--muted); }
+
+  .genre-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .chip {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.72rem;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .chip.active { border-color: var(--brass); color: var(--brass); font-weight: 700; }
+
+  .rail-btn {
+    display: block;
+    width: 100%;
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.78rem;
+    background: none;
+    border: 1px dashed var(--rule);
+    border-radius: 4px;
+    padding: 0.5rem 0.6rem;
+    color: var(--muted);
+    cursor: pointer;
+    text-align: left;
+  }
+  .rail-btn + .rail-btn { margin-top: 0.4rem; }
+  .rail-btn:hover { border-color: var(--brass); color: var(--brass); }
+  .rail-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  .search-wrap { position: relative; }
+  .search-wrap input {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    color: var(--text-on-bg);
+  }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-wrap input:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+
+  .content-top {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .content-top .search-wrap { flex: 1; min-width: 200px; }
+
+  .btn {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.55rem 1rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--brass); color: var(--bg-2); }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-secondary { background: none; color: var(--muted); border: 1px solid var(--rule); }
+  .btn-danger { background: none; color: var(--burgundy); border: 1px solid var(--burgundy); }
+  .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .sort-select {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.78rem;
+    background: none;
+    color: var(--muted);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.5rem 0.5rem;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.1rem; }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 1.1rem 1.1rem 0.9rem;
+    box-shadow: 0 3px 8px var(--shadow);
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: transform 0.12s ease;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .card .callno { font-family: 'Courier Prime', monospace; font-size: 0.68rem; color: var(--muted); letter-spacing: 0.02em; display: flex; justify-content: space-between; }
+  .card h3 { margin: 0; font-size: 1.12rem; font-weight: 600; line-height: 1.3; }
+  .card .author { font-style: italic; color: var(--muted); font-size: 0.92rem; margin: -0.2rem 0 0; }
+  .card .genre-tags { font-size: 0.68rem; color: var(--brass); margin: 0.1rem 0 0; letter-spacing: 0.02em; }
+  .card .meta-row { display: flex; justify-content: space-between; align-items: center; margin-top: 0.3rem; border-top: 1px dashed var(--rule); padding-top: 0.55rem; }
+
+  .status-stamp {
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.18rem 0.45rem;
+    border-radius: 2px;
+    border: 1.5px solid currentColor;
+    transform: rotate(-2deg);
+  }
+  .status-to-read { color: var(--brass); }
+  .status-reading { color: var(--sage); }
+  .status-read { color: var(--burgundy); }
+
+  .stars { font-size: 0.8rem; color: var(--brass); letter-spacing: 1px; }
+
+  .empty-state { grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--muted); }
+  .empty-state h3 { font-family: 'Lora', serif; font-size: 1.3rem; color: var(--text-on-bg); margin-bottom: 0.4rem; }
+
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 10, 8, 0.55);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 4vh 1rem;
+    overflow-y: auto;
+    z-index: 50;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: var(--paper);
+    border-radius: 6px;
+    max-width: 460px;
+    width: 100%;
+    padding: 1.75rem;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  }
+  .modal h2 { margin: 0 0 1.1rem; font-size: 1.35rem; }
+
+  .field { margin-bottom: 0.9rem; }
+  .field label { display: block; font-family: 'Courier Prime', monospace; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.3rem; }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    font-family: 'Lora', serif;
+    font-size: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    color: var(--text-on-bg);
+  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field-row { display: flex; gap: 0.7rem; }
+  .field-row .field { flex: 1; }
+
+  .rating-input { display: flex; gap: 0.3rem; font-size: 1.3rem; }
+  .rating-input button { background: none; border: none; cursor: pointer; color: var(--rule); padding: 0; }
+  .rating-input button.filled { color: var(--brass); }
+
+  .modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1.4rem; gap: 0.6rem; }
+  .modal p.hint { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+  .modal ul.hint-list { color: var(--muted); font-size: 0.85rem; line-height: 1.6; padding-left: 1.1rem; margin: 0.5rem 0 1rem; }
+
+  .banner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0.6rem 1.5rem;
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.78rem;
+    color: var(--burgundy);
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(calc(100% + 2rem));
+    opacity: 0;
+    pointer-events: none;
+    background: var(--ink);
+    color: var(--bg);
+    font-family: 'Courier Prime', monospace;
+    font-size: 0.8rem;
+    padding: 0.7rem 1.1rem;
+    border-radius: 6px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    z-index: 60;
+    max-width: 90vw;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+  /* Phones: books first. Shelf and genre filters become swipeable rows above them,
+     and the import/export tools move below the list. Desktop is unchanged. */
+  @media (max-width: 720px) {
+    main { display: flex; flex-direction: column; gap: 1.1rem; padding-top: 1rem; }
+    .rail { display: contents; }
+    .rail-shelf { order: 1; }
+    .rail-genre { order: 2; }
+    .content { order: 3; margin-bottom: 1rem; }
+    .rail-tools { order: 4; }
+
+    .rail-shelf h2, .rail-genre h2 { margin-bottom: 0.4rem; }
+    .tab-list, .genre-chips { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.3rem; scrollbar-width: none; }
+    .tab-list::-webkit-scrollbar, .genre-chips::-webkit-scrollbar { display: none; }
+    .tab { flex: 0 0 auto; white-space: nowrap; border: 1px solid var(--rule); border-radius: 4px; padding: 0.45rem 0.75rem; gap: 0.6rem; }
+    .tab.active { border-color: var(--brass); }
+    .chip { flex: 0 0 auto; padding: 0.4rem 0.7rem; }
+  }
+
+  @media (pointer: coarse) {
+    .rating-input { gap: 0.1rem; font-size: 1.7rem; }
+    .rating-input button { padding: 0.2rem 0.25rem; }
+  }
+
+  /* iPhones zoom the page when a focused field is smaller than 16px */
+  @supports (-webkit-touch-callout: none) {
+    .sort-select { font-size: 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="drawer-front">
+    <h1>The Catalog</h1>
+    <div class="header-right">
+      <div class="save-status type-label" id="saveStatus"><span class="save-dot" id="saveDot"></span><span id="saveText">Loading&hellip;</span></div>
+      <div class="tally type-label" id="tally"></div>
+    </div>
+  </div>
+</header>
+
+<div class="banner type-label" id="banner" role="status" hidden></div>
+
+<main>
+  <aside class="rail">
+    <div class="rail-group rail-shelf">
+      <h2>Shelf</h2>
+      <div class="tab-list" id="statusTabs" role="tablist"></div>
+    </div>
+    <div class="rail-group rail-genre">
+      <h2>Genre</h2>
+      <div class="genre-chips" id="genreChips"></div>
+    </div>
+    <div class="rail-group rail-tools">
+      <h2>Import</h2>
+      <button class="rail-btn" id="importBtn">Import from CSV&hellip;</button>
+      <button class="rail-btn" id="restoreBtn">Restore from backup&hellip;</button>
+      <input type="file" id="csvFile" accept=".csv,text/csv" class="visually-hidden" tabindex="-1">
+      <input type="file" id="backupFile" accept=".json,application/json" class="visually-hidden" tabindex="-1">
+    </div>
+    <div class="rail-group rail-tools">
+      <h2>Export</h2>
+      <button class="rail-btn" id="backupBtn">Back up to file</button>
+      <button class="rail-btn" id="exportBtn">Export to CSV</button>
+    </div>
+    <div class="rail-group rail-tools" id="installGroup" hidden>
+      <h2>App</h2>
+      <button class="rail-btn" id="installBtn">Install The Catalog</button>
+    </div>
+  </aside>
+
+  <section class="content">
+    <div class="content-top">
+      <div class="search-wrap">
+        <label for="search" class="visually-hidden">Search by title or author</label>
+        <input id="search" type="text" placeholder="Search title or author&hellip;" autocomplete="off">
+      </div>
+      <select class="sort-select" id="sortSelect" aria-label="Sort books">
+        <option value="added-desc">Recently added</option>
+        <option value="title-asc">Title A&ndash;Z</option>
+        <option value="author-asc">Author A&ndash;Z</option>
+        <option value="year-desc">Year, newest</option>
+        <option value="rating-desc">Rating, highest</option>
+      </select>
+      <button class="btn btn-primary" id="addBtn">+ Add a book</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle">Add a book</h2>
+    <form id="bookForm">
+      <div class="field">
+        <label for="f-title">Title</label>
+        <input id="f-title" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-author">Author</label>
+        <input id="f-author" required autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-genre">Genre(s)</label>
+          <input id="f-genre" placeholder="e.g. Fiction, Fantasy" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="f-year">Year</label>
+          <input id="f-year" type="number" min="-5000" max="2100" autocomplete="off">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-status">Status</label>
+          <select id="f-status">
+            <option value="to-read">Want to read</option>
+            <option value="reading">Reading</option>
+            <option value="read">Read</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Rating</label>
+          <div class="rating-input" id="ratingInput"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-notes">Notes</label>
+        <textarea id="f-notes" placeholder="Anything worth remembering&hellip;"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="deleteBtn" style="display:none;">Remove</button>
+        <div style="display:flex; gap:0.5rem; margin-left:auto;">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="overlay" id="importOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+    <h2 id="importTitle">Import from CSV</h2>
+    <p class="hint">Choose a CSV exported from Goodreads (My Books &rarr; Import/Export &rarr; Export Library) or from The Catalog.</p>
+    <ul class="hint-list">
+      <li>Books already in your catalog (matched by title + author) won't be duplicated &mdash; if the file has genres they're missing, those get added in.</li>
+      <li>Goodreads shelves map to Want to read / Reading / Read.</li>
+      <li>Your non-standard bookshelves (anything besides to-read/currently-reading/read) come in as genres, comma-separated.</li>
+      <li>Files exported from The Catalog keep their genre, year, status, rating and notes.</li>
+    </ul>
+    <div id="importResult" class="hint" role="status" style="display:none;"></div>
+    <div class="modal-actions">
+      <div style="display:flex; gap:0.5rem; margin-left:auto;">
+        <button type="button" class="btn btn-secondary" id="importCancelBtn">Close</button>
+        <button type="button" class="btn btn-primary" id="importChooseBtn">Choose CSV file</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="confirmOverlay">
+  <div class="modal" style="max-width: 380px;" role="dialog" aria-modal="true">
+    <p id="confirmMessage" style="white-space: pre-line; margin: 0 0 1.2rem; color: var(--text-on-bg); font-size: 0.95rem; line-height: 1.5;"></p>
+    <div class="modal-actions">
+      <div style="display:flex; gap:0.5rem; margin-left:auto;">
+        <button type="button" class="btn btn-secondary" id="confirmCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STATUS_LABELS = { 'to-read': 'Want to read', 'reading': 'Reading', 'read': 'Read' };
+  var STATUS_CLASS = { 'to-read': 'status-to-read', 'reading': 'status-reading', 'read': 'status-read' };
+
+  var localBooks = {};   // id -> book record (the source of truth for rendering)
+  var meta = {};         // small app settings, e.g. { lastBackupAt: <ms since epoch> }
+  var editingId = null;
+  var currentRating = 0;
+  var filterStatus = 'all';
+  var filterGenre = 'all';
+
+  // ---------- storage ----------
+  // Books live in IndexedDB, one record per book, so two open windows can't overwrite each other.
+  // If IndexedDB is blocked (some private modes) it falls back to localStorage, then to memory only.
+
+  var storage = (function () {
+    var DB_NAME = 'the-catalog';
+    var LS_BOOKS = 'catalog:books:v3';
+    var LS_META = 'catalog:meta:v3';
+    var mode = 'idb';            // 'idb' | 'local' | 'memory'
+    var dbPromise = null;
+
+    function openDb() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise(function (resolve, reject) {
+        if (!window.indexedDB) { reject(new Error('IndexedDB is not available')); return; }
+        var req;
+        try { req = indexedDB.open(DB_NAME, 1); } catch (e) { reject(e); return; }
+        req.onupgradeneeded = function () {
+          req.result.createObjectStore('books', { keyPath: 'id' });
+          req.result.createObjectStore('meta');
+        };
+        req.onsuccess = function () {
+          var db = req.result;
+          db.onversionchange = function () { db.close(); dbPromise = null; };
+          resolve(db);
+        };
+        req.onerror = function () { reject(req.error || new Error('Could not open the database')); };
+        req.onblocked = function () { reject(new Error('The database is blocked by another window')); };
+      });
+      return dbPromise;
+    }
+
+    function done(tx) {
+      return new Promise(function (resolve, reject) {
+        tx.oncomplete = function () { resolve(); };
+        tx.onabort = function () { reject(tx.error || new Error('The save was interrupted')); };
+      });
+    }
+
+    function readLocal() {
+      var books = {}, m = {};
+      try { books = JSON.parse(localStorage.getItem(LS_BOOKS) || '{}') || {}; } catch (e) {}
+      try { m = JSON.parse(localStorage.getItem(LS_META) || '{}') || {}; } catch (e) {}
+      return { books: books, meta: m };
+    }
+
+    function writeLocal() {
+      if (mode === 'memory') return Promise.resolve();
+      try {
+        localStorage.setItem(LS_BOOKS, JSON.stringify(localBooks));
+        localStorage.setItem(LS_META, JSON.stringify(meta));
+        return Promise.resolve();
+      } catch (e) { return Promise.reject(e); }
+    }
+
+    function loadAll() {
+      if (mode !== 'idb') return Promise.resolve(mode === 'local' ? readLocal() : { books: {}, meta: {} });
+      return openDb().then(function (db) {
+        var tx = db.transaction(['books', 'meta'], 'readonly');
+        var booksReq = tx.objectStore('books').getAll();
+        var metaReq = tx.objectStore('meta').get('app');
+        return done(tx).then(function () {
+          var books = {};
+          (booksReq.result || []).forEach(function (b) { books[b.id] = b; });
+          return { books: books, meta: metaReq.result || {} };
+        });
+      });
+    }
+
+    function init() {
+      return openDb().then(function () {
+        mode = 'idb';
+        return loadAll();
+      }).catch(function () {
+        try {
+          localStorage.setItem('catalog:probe', '1');
+          localStorage.removeItem('catalog:probe');
+          mode = 'local';
+        } catch (e) { mode = 'memory'; }
+        return loadAll();
+      });
+    }
+
+    function putBooks(records) {
+      if (!records.length) return Promise.resolve();
+      if (mode !== 'idb') return writeLocal();
+      return openDb().then(function (db) {
+        var tx = db.transaction('books', 'readwrite');
+        var store = tx.objectStore('books');
+        records.forEach(function (r) { store.put(r); });
+        return done(tx);
+      });
+    }
+
+    function deleteBook(id) {
+      if (mode !== 'idb') return writeLocal();
+      return openDb().then(function (db) {
+        var tx = db.transaction('books', 'readwrite');
+        tx.objectStore('books').delete(id);
+        return done(tx);
+      });
+    }
+
+    function saveMeta() {
+      if (mode !== 'idb') return writeLocal();
+      return openDb().then(function (db) {
+        var tx = db.transaction('meta', 'readwrite');
+        tx.objectStore('meta').put(meta, 'app');
+        return done(tx);
+      });
+    }
+
+    return {
+      init: init, loadAll: loadAll, putBooks: putBooks, deleteBook: deleteBook, saveMeta: saveMeta,
+      get mode() { return mode; }
+    };
+  })();
+
+  // ---------- CSV ----------
+  // A small RFC 4180 parser (quoted fields, "" escapes, commas and line breaks inside quotes,
+  // CRLF/LF/CR line endings, byte-order mark), so the app has no third-party script to load.
+
+  function parseCsv(text) {
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    var rows = [], row = [], field = '', inQuotes = false, i = 0, n = text.length, c;
+    while (i < n) {
+      c = text.charAt(i);
+      if (inQuotes) {
+        if (c === '"') {
+          if (text.charAt(i + 1) === '"') { field += '"'; i += 2; }
+          else { inQuotes = false; i++; }
+        } else { field += c; i++; }
+      } else if (c === '"' && field === '') {
+        inQuotes = true; i++;
+      } else if (c === ',') {
+        row.push(field); field = ''; i++;
+      } else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text.charAt(i + 1) === '\n') i++;
+        i++;
+        row.push(field); rows.push(row); row = []; field = '';
+      } else {
+        field += c; i++;
+      }
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  // First row is the header; blank lines are skipped. Returns { headers: [...], rows: [{header: value}] }.
+  function csvToTable(text) {
+    var raw = parseCsv(text);
+    var headers = raw.length ? raw[0].map(function (h) { return String(h).trim(); }) : [];
+    var rows = [];
+    for (var r = 1; r < raw.length; r++) {
+      var cells = raw[r];
+      var blank = cells.every(function (v) { return String(v).trim() === ''; });
+      if (blank) continue;
+      var obj = {};
+      headers.forEach(function (h, idx) { if (h) obj[h] = cells[idx] !== undefined ? cells[idx] : ''; });
+      rows.push(obj);
+    }
+    return { headers: headers, rows: rows };
+  }
+
+  var STANDARD_SHELVES = ['to-read', 'currently-reading', 'read'];
+
+  function normKey(s) { return String(s == null ? '' : s).trim().toLowerCase(); }
+
+  function pick(lower, names) {
+    for (var i = 0; i < names.length; i++) {
+      var v = lower[names[i]];
+      if (v !== undefined && String(v).trim() !== '') return String(v).trim();
+    }
+    return '';
+  }
+
+  // Understands Goodreads' export and The Catalog's own CSV export (matched by column names).
+  function mapCsvRow(row) {
+    var lower = {};
+    Object.keys(row).forEach(function (k) { lower[k.trim().toLowerCase()] = row[k]; });
+
+    var title = pick(lower, ['title']);
+    var author = pick(lower, ['author']);
+    if (!title || !author) return null;
+
+    var shelf = normKey(pick(lower, ['exclusive shelf', 'status']));
+    var status = 'to-read';
+    if (shelf === 'read') status = 'read';
+    else if (shelf === 'currently-reading' || shelf === 'reading') status = 'reading';
+
+    var year = parseInt(pick(lower, ['year', 'original publication year', 'year published']), 10);
+    if (!year || isNaN(year)) year = null;
+
+    var ratingNum = parseInt(pick(lower, ['rating', 'my rating']), 10);
+    var rating = (ratingNum > 0 && ratingNum <= 5) ? ratingNum : 0;
+
+    var genre = pick(lower, ['genre']);
+    if (!genre) {
+      genre = pick(lower, ['bookshelves']).split(',')
+        .map(function (s) { return s.trim(); })
+        .filter(function (s) { return s && STANDARD_SHELVES.indexOf(s.toLowerCase()) === -1; })
+        .join(', ');
+    }
+
+    var notes = pick(lower, ['notes', 'my review', 'private notes']);
+
+    var addedAt = Date.now();
+    var addedRaw = pick(lower, ['date added']);
+    if (addedRaw) {
+      var parsed = Date.parse(addedRaw.replace(/\//g, '-'));
+      if (!isNaN(parsed)) addedAt = parsed;
+    }
+
+    return {
+      title: title, author: author, genre: genre, year: year,
+      status: status, rating: rating, notes: notes, addedAt: addedAt
+    };
+  }
+
+  function csvField(v) {
+    var s = v == null ? '' : String(v);
+    if (/[",\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function buildCsv() {
+    var headers = ['Title', 'Author', 'Genre', 'Year', 'Status', 'Rating', 'Notes', 'Date Added'];
+    var rows = [headers.join(',')];
+    visibleBooks()
+      .sort(function (a, b) { return (a.addedAt || 0) - (b.addedAt || 0); })
+      .forEach(function (b) {
+        rows.push([
+          csvField(b.title),
+          csvField(b.author),
+          csvField(b.genre),
+          csvField(b.year || ''),
+          csvField(STATUS_LABELS[b.status] || b.status),
+          csvField(b.rating || ''),
+          csvField(b.notes),
+          csvField(b.addedAt ? new Date(b.addedAt).toISOString().slice(0, 10) : '')
+        ].join(','));
+      });
+    return rows.join('\r\n');
+  }
+
+  // ---------- elements and helpers ----------
+
+  var grid = document.getElementById('grid');
+  var tally = document.getElementById('tally');
+  var overlay = document.getElementById('overlay');
+  var form = document.getElementById('bookForm');
+  var banner = document.getElementById('banner');
+  var saveDot = document.getElementById('saveDot');
+  var saveText = document.getElementById('saveText');
+  var importOverlay = document.getElementById('importOverlay');
+  var confirmOverlay = document.getElementById('confirmOverlay');
+
+  // Time + a running counter + a random suffix: importing thousands of rows in one millisecond can't collide.
+  var uidSeq = 0;
+  function uid() {
+    return 'b-' + Date.now().toString(36) + '-' + (uidSeq++).toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function hasOwn(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
+  function localDateStamp() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function showBanner(text) { banner.textContent = text; banner.hidden = false; }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () { t.classList.remove('show'); }, 3200);
+  }
+
+  // ---------- save status (top right) ----------
+
+  function updateStatusUI() {
+    var count = Object.keys(localBooks).length;
+    var when = meta.lastBackupAt;
+    var days = when ? Math.max(0, Math.floor((Date.now() - when) / 86400000)) : null;
+    var text = 'Saved on this device';
+    var state = 'ok';
+    if (storage.mode === 'memory') {
+      text = 'Not saved: this browser is blocking storage';
+      state = 'pending';
+    } else if (count > 0 && when == null) {
+      text += '. Not backed up yet.';
+      state = 'pending';
+    } else if (count > 0 && days > 30) {
+      text += '. Last backup ' + days + ' days ago.';
+      state = 'pending';
+    } else if (count > 0) {
+      text += '. Backed up ' + (days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago') + '.';
+    }
+    saveDot.className = 'save-dot ' + state;
+    saveText.textContent = text;
+  }
+
+  // ---------- confirm dialog ----------
+
+  var _confirmResolve = null;
+
+  function showConfirm(message, opts) {
+    opts = opts || {};
+    if (_confirmResolve) _resolveConfirm(false);
+    return new Promise(function (resolve) {
+      var okBtn = document.getElementById('confirmOkBtn');
+      var cancelBtn = document.getElementById('confirmCancelBtn');
+      document.getElementById('confirmMessage').textContent = message;
+      okBtn.textContent = opts.ok || 'OK';
+      cancelBtn.textContent = opts.cancel || 'Cancel';
+      cancelBtn.style.display = opts.hideCancel ? 'none' : '';
+      _confirmResolve = resolve;
+      confirmOverlay.classList.add('open');
+      okBtn.focus();
+    });
+  }
+
+  function _resolveConfirm(result) {
+    if (_confirmResolve) {
+      var r = _confirmResolve;
+      _confirmResolve = null;
+      confirmOverlay.classList.remove('open');
+      r(result);
+    }
+  }
+
+  document.getElementById('confirmOkBtn').addEventListener('click', function () { _resolveConfirm(true); });
+  document.getElementById('confirmCancelBtn').addEventListener('click', function () { _resolveConfirm(false); });
+  confirmOverlay.addEventListener('click', function (e) { if (e.target === confirmOverlay) _resolveConfirm(false); });
+
+  // ---------- saving ----------
+
+  var persistAsked = false;
+  function askForPersistentStorage() {
+    if (persistAsked || storage.mode !== 'idb') return;
+    persistAsked = true;
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+  }
+
+  // Other windows of the app (e.g. a browser tab and the installed app) are told to reload.
+  var channel = ('BroadcastChannel' in window) ? new BroadcastChannel('the-catalog') : null;
+
+  function notifyOtherWindows() {
+    if (channel && storage.mode !== 'memory') channel.postMessage('changed');
+  }
+
+  function reloadFromStorage() {
+    if (storage.mode === 'memory') return;
+    storage.loadAll().then(function (state) {
+      localBooks = state.books;
+      meta = state.meta || {};
+      render();
+      updateStatusUI();
+    });
+  }
+  if (channel) channel.onmessage = reloadFromStorage;
+
+  function reportSaveError(err) {
+    console.error('Save failed', err);
+    showBanner('Couldn\u2019t save to this device' + (err && err.name ? ' (' + err.name + ')' : '') +
+      '. Use \u201cBack up to file\u201d to keep a copy of your books.');
+  }
+
+  function saveBooks(records) {
+    askForPersistentStorage();
+    return storage.putBooks(records).then(notifyOtherWindows, reportSaveError);
+  }
+
+  // ---------- CRUD ----------
+
+  function upsertBook(id, fields, silent) {
+    var now = Date.now();
+    var existing = localBooks[id];
+    var record = Object.assign(
+      { id: id, addedAt: existing ? existing.addedAt : now },
+      existing,
+      fields,
+      { updatedAt: now }
+    );
+    localBooks[id] = record;
+    saveBooks([record]);
+    if (!silent) {
+      render();
+      updateStatusUI();
+    }
+  }
+
+  function deleteBook(id) {
+    if (!localBooks[id]) return;
+    delete localBooks[id];
+    storage.deleteBook(id).then(notifyOtherWindows, reportSaveError);
+    render();
+    updateStatusUI();
+  }
+
+  function visibleBooks() {
+    return Object.keys(localBooks).map(function (id) { return localBooks[id]; });
+  }
+
+  // ---------- rendering ----------
+
+  function genreList(b) {
+    return (b.genre || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  function callNumber(b) {
+    var gList = genreList(b);
+    var g = (gList[0] || 'GEN').slice(0, 3).toUpperCase();
+    var a = (b.author || 'ANON').replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase();
+    var y = b.year ? String(b.year).slice(-2) : '--';
+    return g + ' ' + a + ' \'' + y;
+  }
+
+  function formatYear(y) { return y < 0 ? Math.abs(y) + ' BC' : String(y); }
+
+  function renderStars(n) {
+    var out = '';
+    for (var i = 1; i <= 5; i++) out += (i <= n ? '&#9733;' : '&#9734;');
+    return out;
+  }
+
+  function renderGenreChips(all) {
+    var genres = {};
+    all.forEach(function (b) { genreList(b).forEach(function (g) { genres[g] = (genres[g] || 0) + 1; }); });
+    if (filterGenre !== 'all' && !hasOwn(genres, filterGenre)) filterGenre = 'all';
+    var names = Object.keys(genres).sort();
+    var html = '<button class="chip' + (filterGenre === 'all' ? ' active' : '') + '" data-genre="all">All</button>';
+    names.forEach(function (g) {
+      html += '<button class="chip' + (filterGenre === g ? ' active' : '') + '" data-genre="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>';
+    });
+    document.getElementById('genreChips').innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (el) {
+      el.addEventListener('click', function () { filterGenre = el.getAttribute('data-genre'); render(); });
+    });
+  }
+
+  function renderStatusTabs(all) {
+    var counts = { all: all.length, 'to-read': 0, reading: 0, read: 0 };
+    all.forEach(function (b) { if (counts[b.status] !== undefined) counts[b.status]++; });
+    var tabs = [['all', 'All books'], ['to-read', 'Want to read'], ['reading', 'Reading'], ['read', 'Read']];
+    var html = '';
+    tabs.forEach(function (t) {
+      html += '<button class="tab' + (filterStatus === t[0] ? ' active' : '') + '" data-status="' + t[0] + '" role="tab">' +
+        '<span>' + t[1] + '</span><span class="n">' + counts[t[0]] + '</span></button>';
+    });
+    document.getElementById('statusTabs').innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (el) {
+      el.addEventListener('click', function () { filterStatus = el.getAttribute('data-status'); render(); });
+    });
+  }
+
+  function currentList(all) {
+    var q = document.getElementById('search').value.trim().toLowerCase();
+    var sort = document.getElementById('sortSelect').value;
+    var list = all.filter(function (b) {
+      if (filterStatus !== 'all' && b.status !== filterStatus) return false;
+      if (filterGenre !== 'all' && genreList(b).indexOf(filterGenre) === -1) return false;
+      if (q && !(String(b.title).toLowerCase().indexOf(q) > -1 || String(b.author).toLowerCase().indexOf(q) > -1)) return false;
+      return true;
+    });
+    list.sort(function (a, b) {
+      switch (sort) {
+        case 'title-asc': return String(a.title).localeCompare(String(b.title));
+        case 'author-asc': return String(a.author).localeCompare(String(b.author));
+        case 'year-desc': return (b.year || 0) - (a.year || 0);
+        case 'rating-desc': return (b.rating || 0) - (a.rating || 0);
+        default: return (b.addedAt || 0) - (a.addedAt || 0);
+      }
+    });
+    return list;
+  }
+
+  function renderGrid(all) {
+    var list = currentList(all);
+    if (list.length === 0) {
+      grid.innerHTML = '<div class="empty-state"><h3>' +
+        (all.length === 0 ? 'This drawer is empty' : 'No cards match') +
+        '</h3><p>' +
+        (all.length === 0 ? 'Add the first book, or import from a CSV.' : 'Try a different search or filter.') +
+        '</p></div>';
+      return;
+    }
+    grid.innerHTML = list.map(function (b) {
+      return '<div class="card" tabindex="0" data-id="' + escapeHtml(b.id) + '">' +
+        '<div class="callno type-label"><span>' + escapeHtml(callNumber(b)) + '</span></div>' +
+        '<h3>' + escapeHtml(b.title) + '</h3>' +
+        '<p class="author">' + escapeHtml(b.author) + (b.year ? ', ' + escapeHtml(formatYear(b.year)) : '') + '</p>' +
+        (genreList(b).length ? '<p class="genre-tags type-label">' + genreList(b).map(escapeHtml).join(' &middot; ') + '</p>' : '') +
+        '<div class="meta-row">' +
+        '<span class="status-stamp ' + (STATUS_CLASS[b.status] || '') + '">' + escapeHtml(STATUS_LABELS[b.status] || b.status) + '</span>' +
+        (b.rating ? '<span class="stars" aria-label="' + escapeHtml(b.rating) + ' out of 5 stars">' + renderStars(b.rating) + '</span>' : '<span></span>') +
+        '</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.card'), function (el) {
+      el.addEventListener('click', function () { openEdit(el.getAttribute('data-id')); });
+      el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(el.getAttribute('data-id')); } });
+    });
+  }
+
+  function render() {
+    var all = visibleBooks();
+    renderStatusTabs(all);
+    renderGenreChips(all);
+    renderGrid(all);
+    tally.textContent = all.length + (all.length === 1 ? ' book' : ' books') + ' catalogued';
+  }
+
+  // ---------- add/edit modal ----------
+
+  function renderRatingInput() {
+    var el = document.getElementById('ratingInput');
+    el.innerHTML = '';
+    for (var i = 1; i <= 5; i++) {
+      (function (i) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerHTML = '&#9733;';
+        btn.className = i <= currentRating ? 'filled' : '';
+        btn.setAttribute('aria-label', i + ' star' + (i > 1 ? 's' : ''));
+        btn.addEventListener('click', function () { currentRating = (currentRating === i) ? 0 : i; renderRatingInput(); });
+        el.appendChild(btn);
+      })(i);
+    }
+  }
+
+  function openAdd() {
+    editingId = null;
+    currentRating = 0;
+    document.getElementById('modalTitle').textContent = 'Add a book';
+    document.getElementById('deleteBtn').style.display = 'none';
+    document.getElementById('saveBtn').textContent = 'Save';
+    form.reset();
+    renderRatingInput();
+    overlay.classList.add('open');
+    // Focus inside the tap itself: iPhones only raise the keyboard for focus that comes straight from a user gesture,
+    // and a deferred focus could also steal focus from a field the user had already started typing in.
+    document.getElementById('f-title').focus();
+  }
+
+  function openEdit(id) {
+    var b = localBooks[id];
+    if (!b) return;
+    editingId = id;
+    currentRating = b.rating || 0;
+    document.getElementById('modalTitle').textContent = 'Edit book';
+    document.getElementById('deleteBtn').style.display = 'inline-block';
+    document.getElementById('saveBtn').textContent = 'Save changes';
+    document.getElementById('f-title').value = b.title || '';
+    document.getElementById('f-author').value = b.author || '';
+    document.getElementById('f-genre').value = b.genre || '';
+    document.getElementById('f-year').value = b.year || '';
+    document.getElementById('f-status').value = b.status || 'to-read';
+    document.getElementById('f-notes').value = b.notes || '';
+    renderRatingInput();
+    overlay.classList.add('open');
+  }
+
+  function closeModal() { overlay.classList.remove('open'); }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var fields = {
+      title: document.getElementById('f-title').value.trim(),
+      author: document.getElementById('f-author').value.trim(),
+      genre: document.getElementById('f-genre').value.trim(),
+      year: document.getElementById('f-year').value ? parseInt(document.getElementById('f-year').value, 10) : null,
+      status: document.getElementById('f-status').value,
+      rating: currentRating,
+      notes: document.getElementById('f-notes').value.trim()
+    };
+    if (!fields.title || !fields.author) return;
+    upsertBook(editingId || uid(), fields);
+    closeModal();
+  });
+
+  document.getElementById('deleteBtn').addEventListener('click', function () {
+    if (!editingId) return;
+    showConfirm('Remove this book from the catalog?').then(function (yes) {
+      if (yes) { deleteBook(editingId); closeModal(); }
+    });
+  });
+
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      if (overlay.classList.contains('open')) closeModal();
+      if (importOverlay.classList.contains('open')) importOverlay.classList.remove('open');
+      if (confirmOverlay.classList.contains('open')) _resolveConfirm(false);
+    }
+  });
+
+  document.getElementById('addBtn').addEventListener('click', openAdd);
+  document.getElementById('search').addEventListener('input', render);
+  document.getElementById('sortSelect').addEventListener('change', render);
+
+  // ---------- reading files ----------
+
+  function readText(file) {
+    if (file.text) return file.text();
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(String(r.result)); };
+      r.onerror = function () { reject(r.error || new Error('Could not read the file')); };
+      r.readAsText(file);
+    });
+  }
+
+  function bookKey(b) { return normKey(b.title) + '|' + normKey(b.author); }
+
+  function existingKeyMap() {
+    var map = {};
+    visibleBooks().forEach(function (b) { map[bookKey(b)] = b.id; });
+    return map;
+  }
+
+  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+
+  // ---------- CSV import (Goodreads or The Catalog) ----------
+
+  var csvFile = document.getElementById('csvFile');
+  var importResult = document.getElementById('importResult');
+
+  function showImportResult(text) { importResult.style.display = 'block'; importResult.textContent = text; }
+
+  document.getElementById('importBtn').addEventListener('click', function () {
+    importResult.style.display = 'none';
+    importOverlay.classList.add('open');
+  });
+  document.getElementById('importCancelBtn').addEventListener('click', function () { importOverlay.classList.remove('open'); });
+  document.getElementById('importChooseBtn').addEventListener('click', function () { csvFile.click(); });
+  importOverlay.addEventListener('click', function (e) { if (e.target === importOverlay) importOverlay.classList.remove('open'); });
+
+  function importRows(rows) {
+    var known = existingKeyMap();
+    var result = { added: 0, updated: 0, skipped: 0, invalid: 0, toSave: [] };
+    rows.forEach(function (row) {
+      var mapped = mapCsvRow(row);
+      if (!mapped) { result.invalid++; return; }
+      var key = bookKey(mapped);
+      var existingId = known[key];
+      if (existingId) {
+        var existing = localBooks[existingId];
+        var existingGenres = genreList(existing);
+        var merged = existingGenres.slice();
+        genreList(mapped).forEach(function (g) { if (merged.indexOf(g) === -1) merged.push(g); });
+        if (merged.length > existingGenres.length) {
+          var withGenres = Object.assign({}, existing, { genre: merged.join(', '), updatedAt: Date.now() });
+          localBooks[existingId] = withGenres;
+          result.toSave.push(withGenres);
+          result.updated++;
+        } else {
+          result.skipped++;
+        }
+        return;
+      }
+      var id = uid();
+      var record = Object.assign({ id: id, updatedAt: Date.now() }, mapped);
+      localBooks[id] = record;
+      known[key] = id;
+      result.toSave.push(record);
+      result.added++;
+    });
+    return result;
+  }
+
+  csvFile.addEventListener('change', function () {
+    var file = csvFile.files && csvFile.files[0];
+    if (!file) return;
+    readText(file).then(function (text) {
+      var table = csvToTable(text);
+      var lower = table.headers.map(normKey);
+      if (lower.indexOf('title') === -1 || lower.indexOf('author') === -1) {
+        showImportResult('That file doesn\u2019t have Title and Author columns, so there\u2019s nothing to import.');
+        return;
+      }
+      var r = importRows(table.rows);
+      saveBooks(r.toSave);
+      render();
+      updateStatusUI();
+      showImportResult('Imported ' + plural(r.added, 'new book') + '.' +
+        (r.updated ? ' Added genres to ' + plural(r.updated, 'already-catalogued book') + '.' : '') +
+        (r.skipped ? ' ' + r.skipped + ' already up to date.' : '') +
+        (r.invalid ? ' Skipped ' + plural(r.invalid, 'row') + ' missing a title or author.' : ''));
+      showToast('Import complete \u2014 ' + r.added + ' added, ' + r.updated + ' updated');
+    }).catch(function (err) {
+      showImportResult('Could not read that file: ' + (err && err.message ? err.message : 'unknown error'));
+    }).then(function () { csvFile.value = ''; });
+  });
+
+  // ---------- saving files out (backup and CSV) ----------
+
+  function saveFile(filename, contents, mime) {
+    // Home-screen apps on iPhone can't reliably download files, so use the share sheet (Save to Files).
+    if (navigator.standalone && window.File && navigator.canShare) {
+      var file = new File([contents], filename, { type: 'text/plain' });
+      if (navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file] }).then(function () { return true; }, function (err) {
+          if (err && err.name === 'AbortError') return false;
+          throw err;
+        });
+      }
+    }
+    var url = URL.createObjectURL(new Blob([contents], { type: mime }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    return Promise.resolve(true);
+  }
+
+  function markBackedUp() {
+    meta.lastBackupAt = Date.now();
+    storage.saveMeta().catch(function () {});
+    updateStatusUI();
+  }
+
+  function buildBackupJson() {
+    return JSON.stringify({
+      app: 'the-catalog',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      books: visibleBooks().sort(function (a, b) { return (a.addedAt || 0) - (b.addedAt || 0); })
+    }, null, 2);
+  }
+
+  function exportFailed(err) {
+    showToast('Export failed: ' + (err && err.message ? err.message : 'unknown error'));
+  }
+
+  document.getElementById('backupBtn').addEventListener('click', function () {
+    if (visibleBooks().length === 0) { showToast('Nothing to back up yet.'); return; }
+    saveFile('the-catalog-backup-' + localDateStamp() + '.json', buildBackupJson(), 'application/json').then(function (saved) {
+      if (saved) { markBackedUp(); showToast('Backup saved'); }
+    }).catch(exportFailed);
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', function () {
+    if (visibleBooks().length === 0) { showToast('Nothing to export yet.'); return; }
+    // The leading byte-order mark makes Excel read accents and non-Latin names correctly.
+    saveFile('the-catalog-' + localDateStamp() + '.csv', '\uFEFF' + buildCsv(), 'text/csv;charset=utf-8').then(function (saved) {
+      if (saved) { markBackedUp(); showToast('Catalog exported'); }
+    }).catch(exportFailed);
+  });
+
+  // ---------- restore from a backup file ----------
+
+  var backupFile = document.getElementById('backupFile');
+  document.getElementById('restoreBtn').addEventListener('click', function () { backupFile.click(); });
+
+  function str(v) { return v == null ? '' : String(v).trim(); }
+
+  // Backup files are untrusted input: coerce every field to a safe, expected shape.
+  function cleanBook(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var title = str(raw.title), author = str(raw.author);
+    if (!title || !author) return null;
+    var year = parseInt(raw.year, 10);
+    if (!year || isNaN(year) || year < -5000 || year > 2100) year = null;
+    var rating = parseInt(raw.rating, 10);
+    if (!(rating >= 1 && rating <= 5)) rating = 0;
+    var now = Date.now();
+    var added = Number(raw.addedAt), updated = Number(raw.updatedAt);
+    return {
+      id: /^b-[a-z0-9]{1,16}(-[a-z0-9]{1,16}){1,2}$/.test(String(raw.id)) ? String(raw.id) : uid(),
+      title: title,
+      author: author,
+      genre: str(raw.genre),
+      year: year,
+      status: hasOwn(STATUS_LABELS, raw.status) ? raw.status : 'to-read',
+      rating: rating,
+      notes: str(raw.notes),
+      addedAt: added > 0 ? added : now,
+      updatedAt: updated > 0 ? updated : now
+    };
+  }
+
+  backupFile.addEventListener('change', function () {
+    var file = backupFile.files && backupFile.files[0];
+    if (!file) return;
+    readText(file).then(function (raw) {
+      var notBackup = new Error('That file isn\u2019t a Catalog backup.');
+      var data;
+      try { data = JSON.parse(raw); } catch (e) { throw notBackup; }
+      var list = Array.isArray(data) ? data : (data && data.books);
+      if (!Array.isArray(list) || (data && data.app && data.app !== 'the-catalog')) throw notBackup;
+
+      var known = existingKeyMap();
+      var toAdd = [], toUpdate = [];
+      list.forEach(function (item) {
+        var b = cleanBook(item);
+        if (!b) return;
+        var current = hasOwn(localBooks, b.id) ? localBooks[b.id] : null;
+        if (current) {
+          if (b.updatedAt > (current.updatedAt || 0)) toUpdate.push(b);
+        } else if (!known[bookKey(b)]) {   // same title + author under another id counts as already here
+          known[bookKey(b)] = b.id;
+          toAdd.push(b);
+        }
+      });
+      if (!toAdd.length && !toUpdate.length) { showToast('Nothing new in that backup.'); return; }
+
+      var summary = [];
+      if (toAdd.length) summary.push(plural(toAdd.length, 'new book'));
+      if (toUpdate.length) summary.push(plural(toUpdate.length, 'book') + ' with newer edits');
+      return showConfirm('Restore ' + summary.join(' and ') + ' from this backup?\n\nNothing already in your catalog will be removed.',
+        { ok: 'Restore' }).then(function (yes) {
+        if (!yes) return;
+        var records = toAdd.concat(toUpdate);
+        records.forEach(function (b) { localBooks[b.id] = b; });
+        saveBooks(records);
+        render();
+        updateStatusUI();
+        showToast('Restored ' + plural(records.length, 'book'));
+      });
+    }).catch(function (err) {
+      showToast(err && err.message ? err.message : 'Could not read that file.');
+    }).then(function () { backupFile.value = ''; });
+  });
+
+  // ---------- install button ----------
+
+  var installGroup = document.getElementById('installGroup');
+  var installEvent = null;
+
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  }
+
+  function isIos() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    installEvent = e;
+    if (!isStandalone()) installGroup.hidden = false;
+  });
+
+  window.addEventListener('appinstalled', function () {
+    installEvent = null;
+    installGroup.hidden = true;
+    showToast('The Catalog is installed');
+  });
+
+  // iPhones and iPads have no install prompt, so show the steps instead.
+  if (isIos() && !isStandalone()) installGroup.hidden = false;
+
+  document.getElementById('installBtn').addEventListener('click', function () {
+    if (installEvent) {
+      var promptEvent = installEvent;
+      installEvent = null;
+      installGroup.hidden = true;
+      promptEvent.prompt();
+    } else if (isIos()) {
+      showConfirm('To install on iPhone or iPad: tap the Share button, then choose \u201cAdd to Home Screen\u201d.', { ok: 'Got it', hideCancel: true });
+    }
+  });
+
+  // ---------- offline support ----------
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').then(function (reg) {
+        // check for a newer version whenever the app comes back to the foreground
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') reg.update().catch(function () {});
+        });
+      }).catch(function (err) { console.warn('Offline mode unavailable:', err && err.message); });
+    });
+  }
+
+  // ---------- boot ----------
+
+  // The manifest's "Add a book" shortcut opens the app at ?add=1
+  function launchActions() {
+    if (/[?&]add=1(&|$)/.test(location.search)) {
+      openAdd();
+      if (window.history && history.replaceState) history.replaceState(null, '', location.pathname);
+    }
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') updateStatusUI();
+  });
+
+  storage.init().then(function (state) {
+    localBooks = state.books;
+    meta = state.meta || {};
+    render();
+    updateStatusUI();
+    if (storage.mode === 'memory') {
+      showBanner('This browser is blocking storage, so books won\u2019t be kept between visits. Use \u201cBack up to file\u201d to keep a copy.');
+    }
+    launchActions();
+  }).catch(function (err) {
+    console.error(err);
+    showBanner('The catalog couldn\u2019t be opened' + (err && err.message ? ': ' + err.message : '.'));
+  });
+
+  registerServiceWorker();
+})();
+</script>
+</body>
+</html>
