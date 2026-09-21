@@ -9,3 +9,4 @@ A private catalogue for me.
 | `manifest.webmanifest` | Install details: name, icons, colours |
 | `icons/` | App icons |
 
+https://demonicdemzx.github.io/The-Catalogue/
