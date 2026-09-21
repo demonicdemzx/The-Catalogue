@@ -8,17 +8,22 @@
  *    fetched, the app falls back to Georgia and Courier New.
  *  - Your books are not handled here. They live in the browser's IndexedDB.
  *
- * Bump VERSION if you change the SHELL list or this file's logic.
+ * Bump VERSION if you change the CORE or EXTRAS lists or this file's logic.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 // Cache names keep their original spelling so existing installs clean up their old copies correctly.
 const SHELL_CACHE = 'catalog-shell-' + VERSION;
 const FONT_CACHE = 'catalog-fonts';
 
-const SHELL = [
+// Without these the app can't run, so the install fails (and is retried) if any is missing.
+const CORE = [
   './',
   './index.html',
-  './manifest.webmanifest',
+  './manifest.webmanifest'
+];
+
+// Icons are nice to have offline, but one missing file must not stop the app from installing.
+const EXTRAS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
@@ -31,11 +36,14 @@ const SHELL = [
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
+// 'reload' skips the browser's HTTP cache so a new install never saves stale files
+const fresh = (url) => new Request(url, { cache: 'reload' });
+
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
-    // 'reload' skips the browser's HTTP cache so a new install never saves stale files
-    await cache.addAll(SHELL.map((url) => new Request(url, { cache: 'reload' })));
+    await cache.addAll(CORE.map(fresh));
+    await Promise.allSettled(EXTRAS.map((url) => cache.add(fresh(url))));
     await precacheFonts().catch(() => {});   // best effort: fonts are cosmetic
     await self.skipWaiting();
   })());
@@ -107,11 +115,13 @@ async function precacheFonts() {
 // Fonts never change at a given URL, so saved copies are served first.
 async function fontResponse(request) {
   const cache = await caches.open(FONT_CACHE);
-  const saved = await cache.match(request, { ignoreVary: true });
+  const saved = await cache.match(request.url, { ignoreVary: true });
   if (saved) return saved;
   try {
-    const response = await fetch(request);
-    if (response.ok || response.type === 'opaque') cache.put(request, response.clone());
+    // Google Fonts allows cross-origin reads. Fetching in that mode gives a readable response we can check and keep,
+    // rather than an opaque one (which browsers count as ~7 MB of storage each).
+    const response = await fetch(request.url, { mode: 'cors' });
+    if (response.ok) cache.put(request.url, response.clone());
     return response;
   } catch (err) {
     return new Response('', { status: 504 });   // the page falls back to its system fonts

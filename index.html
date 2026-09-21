@@ -1,7 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
 <meta charset="UTF-8">
+<!-- The app can only talk to its own origin (plus Google Fonts for typefaces), so nothing it holds can be sent anywhere else. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Catalogue</title>
 <meta name="description" content="A private catalogue for your personal library. Works offline; your books stay on your device.">
@@ -17,9 +21,9 @@
 <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<!-- Loaded without blocking the first paint: if Google Fonts is slow or blocked, the page still appears (in Georgia and Courier New). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap"></noscript>
 <style>
   :root {
     --ink: #2A2118;
@@ -27,12 +31,15 @@
     --paper-2: #E6D8B8;
     --paper-edge: #D8C69C;
     --brass: #96652E;
+    --brass-text: #7A4E1D;
+    --on-brass: #FBF5E6;
+    --control-border: #7F7050;
     --burgundy: #6B2737;
     --sage: #4C6650;
     --bg: #EDE3CA;
     --bg-2: #E2D3AC;
     --text-on-bg: #2A2118;
-    --muted: #6B5D45;
+    --muted: #61533B;
     --shadow: rgba(42, 33, 24, 0.18);
     --rule: rgba(42, 33, 24, 0.22);
     --amber: #96652E;
@@ -46,7 +53,10 @@
       --paper-2: #1C2830;
       --paper-edge: #16212A;
       --brass: #C89A5C;
-      --burgundy: #C97A8A;
+      --brass-text: #C89A5C;
+      --on-brass: #0E151A;
+      --control-border: #6F7F86;
+      --burgundy: #D4808F;
       --sage: #8FB89A;
       --bg: #131C22;
       --bg-2: #0E151A;
@@ -64,7 +74,10 @@
     --paper-2: #1C2830;
     --paper-edge: #16212A;
     --brass: #C89A5C;
-    --burgundy: #C97A8A;
+    --brass-text: #C89A5C;
+    --on-brass: #0E151A;
+    --control-border: #6F7F86;
+    --burgundy: #D4808F;
     --sage: #8FB89A;
     --bg: #131C22;
     --bg-2: #0E151A;
@@ -77,6 +90,7 @@
   }
 
   * { box-sizing: border-box; }
+  html { background: var(--bg); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   [hidden] { display: none !important; }
 
   body {
@@ -89,6 +103,8 @@
   }
 
   .type-label { font-family: 'Courier Prime', 'Courier New', monospace; }
+
+  .noscript { max-width: 1080px; margin: 0; padding: 1.5rem; font-family: 'Courier Prime', 'Courier New', monospace; color: var(--burgundy); }
 
   header {
     padding: 2.5rem 1.5rem 1.25rem;
@@ -184,13 +200,13 @@
     font-family: 'Courier Prime', monospace;
     font-size: 0.72rem;
     padding: 0.25rem 0.55rem;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--control-border);
     border-radius: 3px;
     background: none;
     color: var(--muted);
     cursor: pointer;
   }
-  .chip.active { border-color: var(--brass); color: var(--brass); font-weight: 700; }
+  .chip.active { border-color: var(--brass-text); color: var(--brass-text); font-weight: 700; }
 
   .rail-btn {
     display: block;
@@ -198,7 +214,7 @@
     font-family: 'Courier Prime', monospace;
     font-size: 0.78rem;
     background: none;
-    border: 1px dashed var(--rule);
+    border: 1px dashed var(--control-border);
     border-radius: 4px;
     padding: 0.5rem 0.6rem;
     color: var(--muted);
@@ -206,8 +222,8 @@
     text-align: left;
   }
   .rail-btn + .rail-btn { margin-top: 0.4rem; }
-  .rail-btn:hover { border-color: var(--brass); color: var(--brass); }
-  .rail-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .rail-btn:hover { border-color: var(--brass-text); color: var(--brass-text); }
+  .rail-btn:focus-visible, .tab:focus-visible, .chip:focus-visible, .rating-input button:focus-visible { outline: 2px solid var(--brass-text); outline-offset: 2px; }
 
   .search-wrap { position: relative; }
   .search-wrap input {
@@ -216,12 +232,14 @@
     font-family: 'Lora', serif;
     font-size: 1rem;
     background: var(--paper);
-    border: 1px solid var(--rule);
+    border: 1px solid var(--control-border);
     border-radius: 4px;
     color: var(--text-on-bg);
+    -webkit-appearance: none;
+    appearance: none;
   }
   .search-wrap input::placeholder { color: var(--muted); }
-  .search-wrap input:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+  .search-wrap input:focus-visible, .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible, .sort-select:focus-visible { outline: 2px solid var(--brass-text); outline-offset: 1px; }
 
   .content-top {
     display: flex;
@@ -242,9 +260,9 @@
     cursor: pointer;
     white-space: nowrap;
   }
-  .btn-primary { background: var(--brass); color: var(--bg-2); }
+  .btn-primary { background: var(--brass); color: var(--on-brass); }
   .btn-primary:hover { filter: brightness(1.08); }
-  .btn-secondary { background: none; color: var(--muted); border: 1px solid var(--rule); }
+  .btn-secondary { background: none; color: var(--muted); border: 1px solid var(--control-border); }
   .btn-danger { background: none; color: var(--burgundy); border: 1px solid var(--burgundy); }
   .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
@@ -253,7 +271,7 @@
     font-size: 0.78rem;
     background: none;
     color: var(--muted);
-    border: 1px solid var(--rule);
+    border: 1px solid var(--control-border);
     border-radius: 4px;
     padding: 0.5rem 0.5rem;
   }
@@ -272,13 +290,15 @@
     flex-direction: column;
     gap: 0.5rem;
     transition: transform 0.12s ease;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .card:hover { transform: translateY(-2px); }
   .card:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
   .card .callno { font-family: 'Courier Prime', monospace; font-size: 0.68rem; color: var(--muted); letter-spacing: 0.02em; display: flex; justify-content: space-between; }
   .card h3 { margin: 0; font-size: 1.12rem; font-weight: 600; line-height: 1.3; }
   .card .author { font-style: italic; color: var(--muted); font-size: 0.92rem; margin: -0.2rem 0 0; }
-  .card .genre-tags { font-size: 0.68rem; color: var(--brass); margin: 0.1rem 0 0; letter-spacing: 0.02em; }
+  .card .genre-tags { font-size: 0.68rem; color: var(--brass-text); margin: 0.1rem 0 0; letter-spacing: 0.02em; }
   .card .meta-row { display: flex; justify-content: space-between; align-items: center; margin-top: 0.3rem; border-top: 1px dashed var(--rule); padding-top: 0.55rem; }
 
   .status-stamp {
@@ -291,11 +311,14 @@
     border: 1.5px solid currentColor;
     transform: rotate(-2deg);
   }
-  .status-to-read { color: var(--brass); }
+  .status-to-read { color: var(--brass-text); }
   .status-reading { color: var(--sage); }
   .status-read { color: var(--burgundy); }
 
   .stars { font-size: 0.8rem; color: var(--brass); letter-spacing: 1px; }
+
+  .more-row { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; padding: 0.5rem 0 1rem; }
+  .more-row .type-label { font-size: 0.78rem; color: var(--muted); }
 
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--muted); }
   .empty-state h3 { font-family: 'Lora', serif; font-size: 1.3rem; color: var(--text-on-bg); margin-bottom: 0.4rem; }
@@ -308,6 +331,7 @@
     justify-content: center;
     padding: 4vh 1rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
     z-index: 50;
   }
   .overlay.open { display: flex; }
@@ -319,18 +343,22 @@
     width: 100%;
     padding: 1.75rem;
     box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    overflow-wrap: anywhere;
   }
+  .modal:focus { outline: none; }
   .modal h2 { margin: 0 0 1.1rem; font-size: 1.35rem; }
+  .confirm-modal { max-width: 380px; }
+  .confirm-message { white-space: pre-line; margin: 0 0 1.2rem; color: var(--text-on-bg); font-size: 0.95rem; line-height: 1.5; }
 
   .field { margin-bottom: 0.9rem; }
-  .field label { display: block; font-family: 'Courier Prime', monospace; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.3rem; }
+  .field label, .field-label { display: block; font-family: 'Courier Prime', monospace; font-size: 0.72rem; color: var(--muted); margin-bottom: 0.3rem; }
   .field input, .field select, .field textarea {
     width: 100%;
     padding: 0.55rem 0.65rem;
     font-family: 'Lora', serif;
     font-size: 1rem;
     background: var(--bg);
-    border: 1px solid var(--rule);
+    border: 1px solid var(--control-border);
     border-radius: 4px;
     color: var(--text-on-bg);
   }
@@ -339,7 +367,7 @@
   .field-row .field { flex: 1; }
 
   .rating-input { display: flex; gap: 0.3rem; font-size: 1.3rem; }
-  .rating-input button { background: none; border: none; cursor: pointer; color: var(--rule); padding: 0; }
+  .rating-input button { background: none; border: none; cursor: pointer; color: var(--muted); padding: 0; line-height: 1; }
   .rating-input button.filled { color: var(--brass); }
 
   .modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1.4rem; gap: 0.6rem; }
@@ -390,14 +418,17 @@
     .rail-shelf h2, .rail-genre h2 { margin-bottom: 0.4rem; }
     .tab-list, .genre-chips { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.3rem; scrollbar-width: none; }
     .tab-list::-webkit-scrollbar, .genre-chips::-webkit-scrollbar { display: none; }
-    .tab { flex: 0 0 auto; white-space: nowrap; border: 1px solid var(--rule); border-radius: 4px; padding: 0.45rem 0.75rem; gap: 0.6rem; }
+    .tab { flex: 0 0 auto; white-space: nowrap; border: 1px solid var(--control-border); border-radius: 4px; padding: 0.45rem 0.75rem; gap: 0.6rem; }
     .tab.active { border-color: var(--brass); }
     .chip { flex: 0 0 auto; padding: 0.4rem 0.7rem; }
   }
 
+  /* Touch screens: comfortably large targets */
   @media (pointer: coarse) {
     .rating-input { gap: 0.1rem; font-size: 1.7rem; }
     .rating-input button { padding: 0.2rem 0.25rem; }
+    .btn, .rail-btn, .sort-select, .tab { min-height: 44px; }
+    .chip { min-height: 36px; }
   }
 
   /* iPhones zoom the page when a focused field is smaller than 16px */
@@ -410,11 +441,13 @@
 </head>
 <body>
 
+<noscript><p class="noscript">The Catalogue needs JavaScript to run. Please turn it on for this site.</p></noscript>
+
 <header>
   <div class="drawer-front">
     <h1>The Catalogue</h1>
     <div class="header-right">
-      <div class="save-status type-label" id="saveStatus"><span class="save-dot" id="saveDot"></span><span id="saveText">Loading&hellip;</span></div>
+      <div class="save-status type-label" id="saveStatus"><span class="save-dot" id="saveDot" aria-hidden="true"></span><span id="saveText">Loading&hellip;</span></div>
       <div class="tally type-label" id="tally"></div>
     </div>
   </div>
@@ -423,21 +456,21 @@
 <div class="banner type-label" id="banner" role="status" hidden></div>
 
 <main>
-  <aside class="rail">
-    <div class="rail-group rail-shelf">
-      <h2>Shelf</h2>
-      <div class="tab-list" id="statusTabs" role="tablist"></div>
+  <aside class="rail" aria-label="Filters and tools">
+    <div class="rail-group rail-shelf" role="group" aria-labelledby="shelfHeading">
+      <h2 id="shelfHeading">Shelf</h2>
+      <div class="tab-list" id="statusTabs"></div>
     </div>
-    <div class="rail-group rail-genre">
-      <h2>Genre</h2>
+    <div class="rail-group rail-genre" role="group" aria-labelledby="genreHeading">
+      <h2 id="genreHeading">Genre</h2>
       <div class="genre-chips" id="genreChips"></div>
     </div>
     <div class="rail-group rail-tools">
       <h2>Import</h2>
       <button class="rail-btn" id="importBtn">Import from CSV&hellip;</button>
       <button class="rail-btn" id="restoreBtn">Restore from backup&hellip;</button>
-      <input type="file" id="csvFile" accept=".csv,text/csv" class="visually-hidden" tabindex="-1">
-      <input type="file" id="backupFile" accept=".json,application/json" class="visually-hidden" tabindex="-1">
+      <input type="file" id="csvFile" accept=".csv,text/csv" class="visually-hidden" tabindex="-1" aria-hidden="true">
+      <input type="file" id="backupFile" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true">
     </div>
     <div class="rail-group rail-tools">
       <h2>Export</h2>
@@ -450,11 +483,11 @@
     </div>
   </aside>
 
-  <section class="content">
+  <section class="content" aria-label="Books">
     <div class="content-top">
-      <div class="search-wrap">
+      <div class="search-wrap" role="search">
         <label for="search" class="visually-hidden">Search by title or author</label>
-        <input id="search" type="text" placeholder="Search title or author&hellip;" autocomplete="off">
+        <input id="search" type="search" placeholder="Search title or author&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
       </div>
       <select class="sort-select" id="sortSelect" aria-label="Sort books">
         <option value="added-desc">Recently added</option>
@@ -466,26 +499,27 @@
       <button class="btn btn-primary" id="addBtn">+ Add a book</button>
     </div>
 
+    <div id="resultsInfo" class="visually-hidden" role="status" aria-live="polite"></div>
     <div class="grid" id="grid"></div>
   </section>
 </main>
 
 <div class="overlay" id="overlay">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">
     <h2 id="modalTitle">Add a book</h2>
     <form id="bookForm">
       <div class="field">
         <label for="f-title">Title</label>
-        <input id="f-title" required autocomplete="off">
+        <input id="f-title" required maxlength="300" autocomplete="off" autocapitalize="words">
       </div>
       <div class="field">
         <label for="f-author">Author</label>
-        <input id="f-author" required autocomplete="off">
+        <input id="f-author" required maxlength="200" autocomplete="off" autocapitalize="words">
       </div>
       <div class="field-row">
         <div class="field">
           <label for="f-genre">Genre(s)</label>
-          <input id="f-genre" placeholder="e.g. Fiction, Fantasy" autocomplete="off">
+          <input id="f-genre" maxlength="200" placeholder="e.g. Fiction, Fantasy" autocomplete="off" autocapitalize="words">
         </div>
         <div class="field">
           <label for="f-year">Year</label>
@@ -502,13 +536,13 @@
           </select>
         </div>
         <div class="field">
-          <label>Rating</label>
-          <div class="rating-input" id="ratingInput"></div>
+          <span class="field-label" id="ratingLabel">Rating</span>
+          <div class="rating-input" id="ratingInput" role="group" aria-labelledby="ratingLabel"></div>
         </div>
       </div>
       <div class="field">
         <label for="f-notes">Notes</label>
-        <textarea id="f-notes" placeholder="Anything worth remembering&hellip;"></textarea>
+        <textarea id="f-notes" maxlength="5000" placeholder="Anything worth remembering&hellip;"></textarea>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-danger" id="deleteBtn" style="display:none;">Remove</button>
@@ -522,7 +556,7 @@
 </div>
 
 <div class="overlay" id="importOverlay">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle" tabindex="-1">
     <h2 id="importTitle">Import from CSV</h2>
     <p class="hint">Choose a CSV exported from Goodreads (My Books &rarr; Import/Export &rarr; Export Library) or from The Catalogue.</p>
     <ul class="hint-list">
@@ -542,8 +576,8 @@
 </div>
 
 <div class="overlay" id="confirmOverlay">
-  <div class="modal" style="max-width: 380px;" role="dialog" aria-modal="true">
-    <p id="confirmMessage" style="white-space: pre-line; margin: 0 0 1.2rem; color: var(--text-on-bg); font-size: 0.95rem; line-height: 1.5;"></p>
+  <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmMessage" tabindex="-1">
+    <p id="confirmMessage" class="confirm-message"></p>
     <div class="modal-actions">
       <div style="display:flex; gap:0.5rem; margin-left:auto;">
         <button type="button" class="btn btn-secondary" id="confirmCancelBtn">Cancel</button>
@@ -567,7 +601,10 @@
   var editingId = null;
   var currentRating = 0;
   var filterStatus = 'all';
-  var filterGenre = 'all';
+  var filterGenre = '';      // lower-cased genre name; '' means every genre
+
+  // Longest text we keep per field (form fields, CSV imports and restored backups all use these).
+  var LIMITS = { title: 300, author: 200, genre: 200, notes: 5000 };
 
   // ---------- storage ----------
   // The storage names below ("the-catalog", "catalog:...") keep their original spelling on purpose:
@@ -737,7 +774,16 @@
 
   var STANDARD_SHELVES = ['to-read', 'currently-reading', 'read'];
 
-  function normKey(s) { return String(s == null ? '' : s).trim().toLowerCase(); }
+  function normKey(s) { return String(s == null ? '' : s).normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase(); }
+
+  // Spreadsheets run cells that start with = + - @ as formulas. On export, text cells like that get a leading
+  // apostrophe, and on import one leading apostrophe is removed again, so a round trip returns the exact text.
+  function unCsvText(s) { return /^'+[=+\-@\t\r]/.test(s) ? s.slice(1) : s; }
+  function csvText(v) {
+    var s = v == null ? '' : String(v);
+    if (/^'*[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return csvField(s);
+  }
 
   function pick(lower, names) {
     for (var i = 0; i < names.length; i++) {
@@ -752,8 +798,8 @@
     var lower = {};
     Object.keys(row).forEach(function (k) { lower[k.trim().toLowerCase()] = row[k]; });
 
-    var title = pick(lower, ['title']);
-    var author = pick(lower, ['author']);
+    var title = clip(unCsvText(pick(lower, ['title'])), LIMITS.title);
+    var author = clip(unCsvText(pick(lower, ['author'])), LIMITS.author);
     if (!title || !author) return null;
 
     var shelf = normKey(pick(lower, ['exclusive shelf', 'status']));
@@ -775,7 +821,8 @@
         .join(', ');
     }
 
-    var notes = pick(lower, ['notes', 'my review', 'private notes']);
+    genre = clip(unCsvText(genre), LIMITS.genre);
+    var notes = clip(unCsvText(pick(lower, ['notes', 'my review', 'private notes'])), LIMITS.notes);
 
     var addedAt = Date.now();
     var addedRaw = pick(lower, ['date added']);
@@ -803,13 +850,13 @@
       .sort(function (a, b) { return (a.addedAt || 0) - (b.addedAt || 0); })
       .forEach(function (b) {
         rows.push([
-          csvField(b.title),
-          csvField(b.author),
-          csvField(b.genre),
+          csvText(b.title),
+          csvText(b.author),
+          csvText(b.genre),
           csvField(b.year || ''),
           csvField(STATUS_LABELS[b.status] || b.status),
           csvField(b.rating || ''),
-          csvField(b.notes),
+          csvText(b.notes),
           csvField(b.addedAt ? new Date(b.addedAt).toISOString().slice(0, 10) : '')
         ].join(','));
       });
@@ -827,6 +874,14 @@
   var saveText = document.getElementById('saveText');
   var importOverlay = document.getElementById('importOverlay');
   var confirmOverlay = document.getElementById('confirmOverlay');
+  var resultsInfo = document.getElementById('resultsInfo');
+  var searchBox = document.getElementById('search');
+  var addBtn = document.getElementById('addBtn');
+
+  var PAGE_SIZE = 100;            // cards drawn at a time; "Show more" adds another page
+  var visibleCount = PAGE_SIZE;
+  var formDirty = false;          // the add/edit form has unsaved typing
+  var saveProblem = false;        // the last write to storage failed
 
   // Time + a running counter + a random suffix: importing thousands of rows in one millisecond can't collide.
   var uidSeq = 0;
@@ -842,12 +897,27 @@
     });
   }
 
+  // Trim, and cap the length without cutting an emoji in half.
+  function clip(s, max) {
+    s = s == null ? '' : String(s).trim();
+    return s.length > max ? s.slice(0, max).replace(/[\uD800-\uDBFF]$/, '') : s;
+  }
+
+  // Lower-case and strip accents, so searching "garcia" finds "García".
+  function fold(s) {
+    return String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
   function localDateStamp() {
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  function showBanner(text) { banner.textContent = text; banner.hidden = false; }
+  function showBanner(text, kind) {
+    banner.textContent = text;
+    banner.setAttribute('data-kind', kind || '');
+    banner.hidden = false;
+  }
 
   function showToast(msg) {
     var t = document.getElementById('toast');
@@ -868,6 +938,9 @@
     if (storage.mode === 'memory') {
       text = 'Not saved: this browser is blocking storage';
       state = 'pending';
+    } else if (saveProblem) {
+      text = 'Not saved: the last change could not be stored';
+      state = 'pending';
     } else if (count > 0 && when == null) {
       text += '. Not backed up yet.';
       state = 'pending';
@@ -880,6 +953,79 @@
     saveDot.className = 'save-dot ' + state;
     saveText.textContent = text;
   }
+
+  // ---------- dialogs ----------
+  // A small stack, so nested dialogs behave: only the top one can be used, Escape and Tab act on it alone,
+  // the page behind is switched off (inert), and focus goes back to where it came from.
+
+  var overlayStack = [];
+  var pageRegions = [document.querySelector('header'), banner, document.querySelector('main')];
+
+  function focusables(root) {
+    return Array.prototype.filter.call(
+      root.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+      function (n) { return !n.disabled && n.getClientRects().length > 0; }
+    );
+  }
+
+  function syncInert() {
+    var top = overlayStack.length ? overlayStack[overlayStack.length - 1].el : null;
+    pageRegions.forEach(function (n) { n.inert = !!top; });
+    [overlay, importOverlay, confirmOverlay].forEach(function (o) { o.inert = !!top && o !== top; });
+  }
+
+  function openOverlay(el, opts) {
+    opts = opts || {};
+    overlayStack.push({ el: el, returnTo: opts.returnTo || document.activeElement });
+    el.classList.add('open');
+    syncInert();
+    (opts.focus || el.querySelector('.modal')).focus();
+  }
+
+  function restoreFocus(node) {
+    var target = node;
+    if (node && node.classList && node.classList.contains('card')) {
+      // cards are drawn again after a save, so find the fresh card for the same book
+      var id = node.getAttribute('data-id');
+      target = Array.prototype.filter.call(grid.querySelectorAll('.card'), function (c) { return c.getAttribute('data-id') === id; })[0];
+    }
+    // Safari doesn't focus a button when it is clicked, so there may be nothing sensible to go back to:
+    // fall back to the dialog still open underneath, or else the page's main button.
+    var usable = target && target !== document.body && document.contains(target) && !target.closest('[inert]');
+    if (!usable) {
+      target = overlayStack.length ? overlayStack[overlayStack.length - 1].el.querySelector('.modal') : addBtn;
+    }
+    target.focus();
+  }
+
+  function closeOverlay(el) {
+    var index = -1;
+    overlayStack.forEach(function (o, i) { if (o.el === el) index = i; });
+    if (index === -1) return;
+    var entry = overlayStack.splice(index, 1)[0];
+    el.classList.remove('open');
+    syncInert();
+    restoreFocus(entry.returnTo);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (!overlayStack.length) return;
+    var top = overlayStack[overlayStack.length - 1].el;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (top === confirmOverlay) _resolveConfirm(false);
+      else if (top === overlay) requestCloseBookForm();
+      else closeOverlay(top);
+    } else if (e.key === 'Tab') {
+      var items = focusables(top);
+      var modal = top.querySelector('.modal');
+      var active = document.activeElement;
+      if (!items.length) { e.preventDefault(); return; }
+      if (!top.contains(active)) { e.preventDefault(); items[0].focus(); }
+      else if (e.shiftKey && (active === items[0] || active === modal)) { e.preventDefault(); items[items.length - 1].focus(); }
+      else if (!e.shiftKey && active === items[items.length - 1]) { e.preventDefault(); items[0].focus(); }
+    }
+  });
 
   // ---------- confirm dialog ----------
 
@@ -896,8 +1042,8 @@
       cancelBtn.textContent = opts.cancel || 'Cancel';
       cancelBtn.style.display = opts.hideCancel ? 'none' : '';
       _confirmResolve = resolve;
-      confirmOverlay.classList.add('open');
-      okBtn.focus();
+      // for anything destructive the safe choice has focus, so a stray Enter can't do damage
+      openOverlay(confirmOverlay, { focus: opts.focusCancel ? cancelBtn : okBtn, returnTo: opts.returnTo });
     });
   }
 
@@ -905,7 +1051,7 @@
     if (_confirmResolve) {
       var r = _confirmResolve;
       _confirmResolve = null;
-      confirmOverlay.classList.remove('open');
+      closeOverlay(confirmOverlay);
       r(result);
     }
   }
@@ -943,18 +1089,29 @@
 
   function reportSaveError(err) {
     console.error('Save failed', err);
+    saveProblem = true;
     showBanner('Couldn\u2019t save to this device' + (err && err.name ? ' (' + err.name + ')' : '') +
-      '. Use \u201cBack up to file\u201d to keep a copy of your books.');
+      '. Use \u201cBack up to file\u201d to keep a copy of your books.', 'save');
+    updateStatusUI();
+  }
+
+  function saveSucceeded() {
+    if (saveProblem) {
+      saveProblem = false;
+      if (banner.getAttribute('data-kind') === 'save') banner.hidden = true;
+      updateStatusUI();
+    }
+    notifyOtherWindows();
   }
 
   function saveBooks(records) {
     askForPersistentStorage();
-    return storage.putBooks(records).then(notifyOtherWindows, reportSaveError);
+    return storage.putBooks(records).then(saveSucceeded, reportSaveError);
   }
 
   // ---------- CRUD ----------
 
-  function upsertBook(id, fields, silent) {
+  function upsertBook(id, fields) {
     var now = Date.now();
     var existing = localBooks[id];
     var record = Object.assign(
@@ -965,16 +1122,14 @@
     );
     localBooks[id] = record;
     saveBooks([record]);
-    if (!silent) {
-      render();
-      updateStatusUI();
-    }
+    render();
+    updateStatusUI();
   }
 
   function deleteBook(id) {
     if (!localBooks[id]) return;
     delete localBooks[id];
-    storage.deleteBook(id).then(notifyOtherWindows, reportSaveError);
+    storage.deleteBook(id).then(saveSucceeded, reportSaveError);
     render();
     updateStatusUI();
   }
@@ -983,17 +1138,70 @@
     return Object.keys(localBooks).map(function (id) { return localBooks[id]; });
   }
 
-  // ---------- rendering ----------
+  // ---------- sorting and searching ----------
+
+  var collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });   // "Book 2" sorts before "Book 10"
+  var keyCache = new WeakMap();                                                             // computed once per book record
+
+  function titleKey(t) { return String(t).replace(/^(?:the|a|an)\s+/i, ''); }            // "The Overstory" sorts under O
+
+  function keysOf(b) {
+    var k = keyCache.get(b);
+    if (!k) {
+      k = { title: titleKey(b.title), search: fold(b.title + ' ' + b.author) };
+      keyCache.set(b, k);
+    }
+    return k;
+  }
 
   function genreList(b) {
     return (b.genre || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
   }
 
+  function genreKey(g) { return g.toLowerCase(); }
+
+  function currentList(all) {
+    var terms = fold(searchBox.value).split(/\s+/).filter(Boolean);   // every word must match, in any order
+    var sort = document.getElementById('sortSelect').value;
+    var list = all.filter(function (b) {
+      if (filterStatus !== 'all' && b.status !== filterStatus) return false;
+      if (filterGenre !== '' && !genreList(b).some(function (g) { return genreKey(g) === filterGenre; })) return false;
+      if (terms.length) {
+        var hay = keysOf(b).search;
+        for (var i = 0; i < terms.length; i++) if (hay.indexOf(terms[i]) === -1) return false;
+      }
+      return true;
+    });
+    var byTitle = function (a, b) {
+      return collator.compare(keysOf(a).title, keysOf(b).title) || collator.compare(String(a.author), String(b.author));
+    };
+    var yearOf = function (b) { return b.year == null ? -Infinity : b.year; };   // undated books go last
+    list.sort(function (a, b) {
+      switch (sort) {
+        case 'title-asc': return byTitle(a, b);
+        case 'author-asc': return collator.compare(String(a.author), String(b.author)) || byTitle(a, b);
+        case 'year-desc': {
+          var ya = yearOf(a), yb = yearOf(b);
+          return (ya === yb ? 0 : (yb > ya ? 1 : -1)) || byTitle(a, b);
+        }
+        case 'rating-desc': return ((b.rating || 0) - (a.rating || 0)) || byTitle(a, b);
+        default: return ((b.addedAt || 0) - (a.addedAt || 0)) || byTitle(a, b);
+      }
+    });
+    return list;
+  }
+
+  // ---------- rendering ----------
+
+  // The first three letters of any script, accents kept: "Émile Zola" gives "ÉMI", not "MIL".
+  function letters(s, n) {
+    return Array.from(String(s).replace(/[^\p{L}]/gu, '')).slice(0, n).join('').toUpperCase();
+  }
+
   function callNumber(b) {
-    var gList = genreList(b);
-    var g = (gList[0] || 'GEN').slice(0, 3).toUpperCase();
-    var a = (b.author || 'ANON').replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase();
-    var y = b.year ? String(b.year).slice(-2) : '--';
+    var g = letters(genreList(b)[0] || '', 3) || 'GEN';
+    var a = letters(b.author || '', 3) || 'ANO';
+    var y = b.year ? String(Math.abs(b.year)).slice(-2).padStart(2, '0') : '--';
     return g + ' ' + a + ' \'' + y;
   }
 
@@ -1005,82 +1213,110 @@
     return out;
   }
 
+  // Rebuilding a list of buttons drops keyboard focus; put it back on the same button afterwards.
+  function preserveFocus(container, attr, rebuild) {
+    var active = document.activeElement;
+    var key = active && container.contains(active) ? active.getAttribute(attr) : null;
+    rebuild();
+    if (key === null) return;
+    var again = Array.prototype.filter.call(container.children, function (c) { return c.getAttribute(attr) === key; })[0];
+    if (again) again.focus();
+  }
+
+  // When a genre was typed several ways, show the commonest spelling, then the tidiest ("Fiction" over "fiction" over "FICTION").
+  function spellingRank(name) {
+    var first = name.charAt(0);
+    return (name === name.toUpperCase() && name !== name.toLowerCase() ? 2 : 0) + (first === first.toLowerCase() && first !== first.toUpperCase() ? 1 : 0);
+  }
+  function betterSpelling(a, b, counts) {
+    if (counts[a] !== counts[b]) return counts[a] > counts[b];
+    if (spellingRank(a) !== spellingRank(b)) return spellingRank(a) < spellingRank(b);
+    return a < b;
+  }
+
   function renderGenreChips(all) {
-    var genres = {};
-    all.forEach(function (b) { genreList(b).forEach(function (g) { genres[g] = (genres[g] || 0) + 1; }); });
-    if (filterGenre !== 'all' && !hasOwn(genres, filterGenre)) filterGenre = 'all';
-    var names = Object.keys(genres).sort();
-    var html = '<button class="chip' + (filterGenre === 'all' ? ' active' : '') + '" data-genre="all">All</button>';
-    names.forEach(function (g) {
-      html += '<button class="chip' + (filterGenre === g ? ' active' : '') + '" data-genre="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>';
+    // genres are grouped without regard to case ("Fiction" and "fiction" are one chip), shown in their commonest spelling
+    var groups = Object.create(null);
+    all.forEach(function (b) {
+      var seen = Object.create(null);
+      genreList(b).forEach(function (g) {
+        var key = genreKey(g);
+        var group = groups[key] || (groups[key] = { spellings: Object.create(null) });
+        group.spellings[g] = (group.spellings[g] || 0) + 1;
+        seen[key] = true;
+      });
     });
-    document.getElementById('genreChips').innerHTML = html;
-    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (el) {
-      el.addEventListener('click', function () { filterGenre = el.getAttribute('data-genre'); render(); });
+    if (filterGenre !== '' && !groups[filterGenre]) filterGenre = '';
+    var chips = Object.keys(groups).map(function (key) {
+      var sp = groups[key].spellings, best = null;
+      Object.keys(sp).forEach(function (name) {
+        if (best === null || betterSpelling(name, best, sp)) best = name;
+      });
+      return { key: key, label: best };
+    }).sort(function (a, b) { return collator.compare(a.label, b.label); });
+
+    var html = '<button type="button" class="chip' + (filterGenre === '' ? ' active' : '') + '" data-genre="" aria-pressed="' + (filterGenre === '') + '">All</button>';
+    chips.forEach(function (c) {
+      var on = filterGenre === c.key;
+      html += '<button type="button" class="chip' + (on ? ' active' : '') + '" data-genre="' + escapeHtml(c.key) + '" aria-pressed="' + on + '">' + escapeHtml(c.label) + '</button>';
     });
+    var el = document.getElementById('genreChips');
+    preserveFocus(el, 'data-genre', function () { el.innerHTML = html; });
   }
 
   function renderStatusTabs(all) {
     var counts = { all: all.length, 'to-read': 0, reading: 0, read: 0 };
-    all.forEach(function (b) { if (counts[b.status] !== undefined) counts[b.status]++; });
+    all.forEach(function (b) { if (hasOwn(counts, b.status)) counts[b.status]++; });
     var tabs = [['all', 'All books'], ['to-read', 'Want to read'], ['reading', 'Reading'], ['read', 'Read']];
     var html = '';
     tabs.forEach(function (t) {
-      html += '<button class="tab' + (filterStatus === t[0] ? ' active' : '') + '" data-status="' + t[0] + '" role="tab">' +
+      var on = filterStatus === t[0];
+      html += '<button type="button" class="tab' + (on ? ' active' : '') + '" data-status="' + t[0] + '" aria-pressed="' + on + '">' +
         '<span>' + t[1] + '</span><span class="n">' + counts[t[0]] + '</span></button>';
     });
-    document.getElementById('statusTabs').innerHTML = html;
-    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (el) {
-      el.addEventListener('click', function () { filterStatus = el.getAttribute('data-status'); render(); });
-    });
+    var el = document.getElementById('statusTabs');
+    preserveFocus(el, 'data-status', function () { el.innerHTML = html; });
   }
 
-  function currentList(all) {
-    var q = document.getElementById('search').value.trim().toLowerCase();
-    var sort = document.getElementById('sortSelect').value;
-    var list = all.filter(function (b) {
-      if (filterStatus !== 'all' && b.status !== filterStatus) return false;
-      if (filterGenre !== 'all' && genreList(b).indexOf(filterGenre) === -1) return false;
-      if (q && !(String(b.title).toLowerCase().indexOf(q) > -1 || String(b.author).toLowerCase().indexOf(q) > -1)) return false;
-      return true;
-    });
-    list.sort(function (a, b) {
-      switch (sort) {
-        case 'title-asc': return String(a.title).localeCompare(String(b.title));
-        case 'author-asc': return String(a.author).localeCompare(String(b.author));
-        case 'year-desc': return (b.year || 0) - (a.year || 0);
-        case 'rating-desc': return (b.rating || 0) - (a.rating || 0);
-        default: return (b.addedAt || 0) - (a.addedAt || 0);
-      }
-    });
-    return list;
+  function cardLabel(b) {
+    return b.title + ' by ' + b.author + (b.year ? ', ' + formatYear(b.year) : '') + '. ' +
+      (STATUS_LABELS[b.status] || b.status) + (b.rating ? '. ' + b.rating + ' out of 5 stars' : '') + '. Edit.';
+  }
+
+  function cardHtml(b) {
+    var genres = genreList(b);
+    return '<div class="card" role="button" tabindex="0" aria-haspopup="dialog" data-id="' + escapeHtml(b.id) + '" aria-label="' + escapeHtml(cardLabel(b)) + '">' +
+      '<div class="callno type-label"><span>' + escapeHtml(callNumber(b)) + '</span></div>' +
+      '<h3>' + escapeHtml(b.title) + '</h3>' +
+      '<p class="author">' + escapeHtml(b.author) + (b.year ? ', ' + escapeHtml(formatYear(b.year)) : '') + '</p>' +
+      (genres.length ? '<p class="genre-tags type-label">' + genres.map(escapeHtml).join(' &middot; ') + '</p>' : '') +
+      '<div class="meta-row">' +
+      '<span class="status-stamp ' + (STATUS_CLASS[b.status] || '') + '">' + escapeHtml(STATUS_LABELS[b.status] || b.status) + '</span>' +
+      (b.rating ? '<span class="stars" aria-hidden="true">' + renderStars(b.rating) + '</span>' : '<span></span>') +
+      '</div></div>';
   }
 
   function renderGrid(all) {
     var list = currentList(all);
+    var narrowed = filterStatus !== 'all' || filterGenre !== '' || searchBox.value.trim() !== '';
     if (list.length === 0) {
       grid.innerHTML = '<div class="empty-state"><h3>' +
         (all.length === 0 ? 'This drawer is empty' : 'No cards match') +
         '</h3><p>' +
         (all.length === 0 ? 'Add the first book, or import from a CSV.' : 'Try a different search or filter.') +
         '</p></div>';
+      resultsInfo.textContent = all.length ? 'No books match.' : '';
       return;
     }
-    grid.innerHTML = list.map(function (b) {
-      return '<div class="card" tabindex="0" data-id="' + escapeHtml(b.id) + '">' +
-        '<div class="callno type-label"><span>' + escapeHtml(callNumber(b)) + '</span></div>' +
-        '<h3>' + escapeHtml(b.title) + '</h3>' +
-        '<p class="author">' + escapeHtml(b.author) + (b.year ? ', ' + escapeHtml(formatYear(b.year)) : '') + '</p>' +
-        (genreList(b).length ? '<p class="genre-tags type-label">' + genreList(b).map(escapeHtml).join(' &middot; ') + '</p>' : '') +
-        '<div class="meta-row">' +
-        '<span class="status-stamp ' + (STATUS_CLASS[b.status] || '') + '">' + escapeHtml(STATUS_LABELS[b.status] || b.status) + '</span>' +
-        (b.rating ? '<span class="stars" aria-label="' + escapeHtml(b.rating) + ' out of 5 stars">' + renderStars(b.rating) + '</span>' : '<span></span>') +
-        '</div></div>';
-    }).join('');
-    Array.prototype.forEach.call(document.querySelectorAll('.card'), function (el) {
-      el.addEventListener('click', function () { openEdit(el.getAttribute('data-id')); });
-      el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(el.getAttribute('data-id')); } });
-    });
+    var shown = list.slice(0, visibleCount);
+    var html = shown.map(cardHtml).join('');
+    if (list.length > shown.length) {
+      html += '<div class="more-row"><button type="button" class="btn btn-secondary" id="moreBtn">Show ' +
+        Math.min(PAGE_SIZE, list.length - shown.length) + ' more</button>' +
+        '<span class="type-label">Showing ' + shown.length + ' of ' + list.length + '</span></div>';
+    }
+    grid.innerHTML = html;
+    resultsInfo.textContent = narrowed ? list.length + (list.length === 1 ? ' book shown.' : ' books shown.') : '';
   }
 
   function render() {
@@ -1091,43 +1327,102 @@
     tally.textContent = all.length + (all.length === 1 ? ' book' : ' books') + ' catalogued';
   }
 
-  // ---------- add/edit modal ----------
+  function resetPaging() { visibleCount = PAGE_SIZE; }
 
-  function renderRatingInput() {
-    var el = document.getElementById('ratingInput');
-    el.innerHTML = '';
-    for (var i = 1; i <= 5; i++) {
-      (function (i) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.innerHTML = '&#9733;';
-        btn.className = i <= currentRating ? 'filled' : '';
-        btn.setAttribute('aria-label', i + ' star' + (i > 1 ? 's' : ''));
-        btn.addEventListener('click', function () { currentRating = (currentRating === i) ? 0 : i; renderRatingInput(); });
-        el.appendChild(btn);
-      })(i);
+  // One listener per list instead of one per card (thousands of books stay fast).
+  grid.addEventListener('click', function (e) {
+    if (e.target.closest('#moreBtn')) {
+      var before = grid.querySelectorAll('.card').length;
+      visibleCount += PAGE_SIZE;
+      render();
+      var fresh = grid.querySelectorAll('.card')[before];
+      if (fresh) fresh.focus({ preventScroll: true });
+      return;
     }
+    var card = e.target.closest('.card');
+    if (card) openEdit(card.getAttribute('data-id'), card);
+  });
+
+  grid.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('card')) {
+      e.preventDefault();
+      openEdit(e.target.getAttribute('data-id'), e.target);
+    }
+  });
+
+  document.getElementById('statusTabs').addEventListener('click', function (e) {
+    var tab = e.target.closest('.tab');
+    if (!tab) return;
+    filterStatus = tab.getAttribute('data-status');
+    resetPaging();
+    render();
+  });
+
+  document.getElementById('genreChips').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    filterGenre = chip.getAttribute('data-genre');
+    resetPaging();
+    render();
+  });
+
+  var searchTimer = null;
+  searchBox.addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () { resetPaging(); render(); }, 120);   // wait for a pause in typing
+  });
+  document.getElementById('sortSelect').addEventListener('change', function () { resetPaging(); render(); });
+
+  // ---------- add/edit dialog ----------
+
+  var ratingEl = document.getElementById('ratingInput');
+  (function buildRatingInput() {
+    for (var i = 1; i <= 5; i++) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('data-value', String(i));
+      btn.setAttribute('aria-label', i + (i === 1 ? ' star' : ' stars'));
+      ratingEl.appendChild(btn);
+    }
+    ratingEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var value = parseInt(btn.getAttribute('data-value'), 10);
+      currentRating = currentRating === value ? 0 : value;     // tapping the current rating clears it
+      formDirty = true;
+      syncRatingInput();
+    });
+  })();
+
+  // Filled stars are a different shape from empty ones, so the rating never depends on colour alone.
+  function syncRatingInput() {
+    Array.prototype.forEach.call(ratingEl.children, function (btn, idx) {
+      var on = idx + 1 <= currentRating;
+      btn.innerHTML = on ? '&#9733;' : '&#9734;';
+      btn.className = on ? 'filled' : '';
+      btn.setAttribute('aria-pressed', String(on));
+    });
   }
 
-  function openAdd() {
+  function openAdd(trigger) {
     editingId = null;
     currentRating = 0;
+    formDirty = false;
     document.getElementById('modalTitle').textContent = 'Add a book';
     document.getElementById('deleteBtn').style.display = 'none';
     document.getElementById('saveBtn').textContent = 'Save';
     form.reset();
-    renderRatingInput();
-    overlay.classList.add('open');
-    // Focus inside the tap itself: iPhones only raise the keyboard for focus that comes straight from a user gesture,
-    // and a deferred focus could also steal focus from a field the user had already started typing in.
-    document.getElementById('f-title').focus();
+    syncRatingInput();
+    // Focus inside the tap itself: iPhones only raise the keyboard for focus that comes straight from a user gesture.
+    openOverlay(overlay, { returnTo: trigger || addBtn, focus: document.getElementById('f-title') });
   }
 
-  function openEdit(id) {
+  function openEdit(id, trigger) {
     var b = localBooks[id];
     if (!b) return;
     editingId = id;
     currentRating = b.rating || 0;
+    formDirty = false;
     document.getElementById('modalTitle').textContent = 'Edit book';
     document.getElementById('deleteBtn').style.display = 'inline-block';
     document.getElementById('saveBtn').textContent = 'Save changes';
@@ -1137,48 +1432,53 @@
     document.getElementById('f-year').value = b.year || '';
     document.getElementById('f-status').value = b.status || 'to-read';
     document.getElementById('f-notes').value = b.notes || '';
-    renderRatingInput();
-    overlay.classList.add('open');
+    syncRatingInput();
+    openOverlay(overlay, { returnTo: trigger });
   }
 
-  function closeModal() { overlay.classList.remove('open'); }
+  function closeBookForm() { closeOverlay(overlay); }
+
+  // A tap outside the dialog, or Escape, must not silently throw away what was typed.
+  function requestCloseBookForm() {
+    if (!formDirty) { closeBookForm(); return; }
+    showConfirm('Discard your changes?', { ok: 'Discard', cancel: 'Keep editing', focusCancel: true }).then(function (yes) {
+      if (yes) closeBookForm();
+    });
+  }
+
+  form.addEventListener('input', function () { formDirty = true; });
+  form.addEventListener('change', function () { formDirty = true; });
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    var year = document.getElementById('f-year').value ? parseInt(document.getElementById('f-year').value, 10) : null;
     var fields = {
-      title: document.getElementById('f-title').value.trim(),
-      author: document.getElementById('f-author').value.trim(),
-      genre: document.getElementById('f-genre').value.trim(),
-      year: document.getElementById('f-year').value ? parseInt(document.getElementById('f-year').value, 10) : null,
+      title: clip(document.getElementById('f-title').value, LIMITS.title),
+      author: clip(document.getElementById('f-author').value, LIMITS.author),
+      genre: clip(document.getElementById('f-genre').value, LIMITS.genre),
+      year: (year === null || isNaN(year) || year === 0) ? null : year,
       status: document.getElementById('f-status').value,
       rating: currentRating,
-      notes: document.getElementById('f-notes').value.trim()
+      notes: clip(document.getElementById('f-notes').value, LIMITS.notes)
     };
     if (!fields.title || !fields.author) return;
     upsertBook(editingId || uid(), fields);
-    closeModal();
+    closeBookForm();
   });
 
   document.getElementById('deleteBtn').addEventListener('click', function () {
-    if (!editingId) return;
-    showConfirm('Remove this book from the catalogue?').then(function (yes) {
-      if (yes) { deleteBook(editingId); closeModal(); }
+    var id = editingId;
+    if (!id) return;
+    showConfirm('Remove this book from the catalogue?', { ok: 'Remove', focusCancel: true, returnTo: document.getElementById('deleteBtn') }).then(function (yes) {
+      if (yes) { deleteBook(id); closeBookForm(); }
     });
   });
 
-  document.getElementById('cancelBtn').addEventListener('click', closeModal);
-  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      if (overlay.classList.contains('open')) closeModal();
-      if (importOverlay.classList.contains('open')) importOverlay.classList.remove('open');
-      if (confirmOverlay.classList.contains('open')) _resolveConfirm(false);
-    }
-  });
+  document.getElementById('cancelBtn').addEventListener('click', closeBookForm);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) requestCloseBookForm(); });
+  importOverlay.addEventListener('click', function (e) { if (e.target === importOverlay) closeOverlay(importOverlay); });
 
-  document.getElementById('addBtn').addEventListener('click', openAdd);
-  document.getElementById('search').addEventListener('input', render);
-  document.getElementById('sortSelect').addEventListener('change', render);
+  addBtn.addEventListener('click', function () { openAdd(addBtn); });
 
   // ---------- reading files ----------
 
@@ -1209,13 +1509,14 @@
 
   function showImportResult(text) { importResult.style.display = 'block'; importResult.textContent = text; }
 
-  document.getElementById('importBtn').addEventListener('click', function () {
+  var MAX_FILE_BYTES = 25 * 1024 * 1024;   // a book list is never this big; refuse rather than freeze the page
+
+  document.getElementById('importBtn').addEventListener('click', function (e) {
     importResult.style.display = 'none';
-    importOverlay.classList.add('open');
+    openOverlay(importOverlay, { returnTo: e.currentTarget });
   });
-  document.getElementById('importCancelBtn').addEventListener('click', function () { importOverlay.classList.remove('open'); });
+  document.getElementById('importCancelBtn').addEventListener('click', function () { closeOverlay(importOverlay); });
   document.getElementById('importChooseBtn').addEventListener('click', function () { csvFile.click(); });
-  importOverlay.addEventListener('click', function (e) { if (e.target === importOverlay) importOverlay.classList.remove('open'); });
 
   function importRows(rows) {
     var known = existingKeyMap();
@@ -1229,7 +1530,11 @@
         var existing = localBooks[existingId];
         var existingGenres = genreList(existing);
         var merged = existingGenres.slice();
-        genreList(mapped).forEach(function (g) { if (merged.indexOf(g) === -1) merged.push(g); });
+        var have = Object.create(null);
+        existingGenres.forEach(function (g) { have[genreKey(g)] = true; });
+        genreList(mapped).forEach(function (g) {
+          if (!have[genreKey(g)]) { have[genreKey(g)] = true; merged.push(g); }
+        });
         if (merged.length > existingGenres.length) {
           var withGenres = Object.assign({}, existing, { genre: merged.join(', '), updatedAt: Date.now() });
           localBooks[existingId] = withGenres;
@@ -1253,6 +1558,11 @@
   csvFile.addEventListener('change', function () {
     var file = csvFile.files && csvFile.files[0];
     if (!file) return;
+    if (file.size > MAX_FILE_BYTES) {
+      showImportResult('That file is over 25 MB, so it can\u2019t be a book list.');
+      csvFile.value = '';
+      return;
+    }
     readText(file).then(function (text) {
       var table = csvToTable(text);
       var lower = table.headers.map(normKey);
@@ -1278,24 +1588,30 @@
 
   function saveFile(filename, contents, mime) {
     // Home-screen apps on iPhone can't reliably download files, so use the share sheet (Save to Files).
-    if (navigator.standalone && window.File && navigator.canShare) {
-      var file = new File([contents], filename, { type: 'text/plain' });
-      if (navigator.canShare({ files: [file] })) {
-        return navigator.share({ files: [file] }).then(function () { return true; }, function (err) {
-          if (err && err.name === 'AbortError') return false;
-          throw err;
-        });
+    try {
+      if (navigator.standalone && window.File && navigator.canShare) {
+        var file = new File([contents], filename, { type: 'text/plain' });
+        if (navigator.canShare({ files: [file] })) {
+          return navigator.share({ files: [file] }).then(function () { return true; }, function (err) {
+            if (err && err.name === 'AbortError') return false;   // the person closed the share sheet
+            throw err;
+          });
+        }
       }
+    } catch (e) { /* share isn't available here; use a normal download instead */ }
+    try {
+      var url = URL.createObjectURL(new Blob([contents], { type: mime }));
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      return Promise.resolve(true);
+    } catch (e) {
+      return Promise.reject(e);
     }
-    var url = URL.createObjectURL(new Blob([contents], { type: mime }));
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-    return Promise.resolve(true);
   }
 
   function markBackedUp() {
@@ -1337,12 +1653,10 @@
   var backupFile = document.getElementById('backupFile');
   document.getElementById('restoreBtn').addEventListener('click', function () { backupFile.click(); });
 
-  function str(v) { return v == null ? '' : String(v).trim(); }
-
   // Backup files are untrusted input: coerce every field to a safe, expected shape.
   function cleanBook(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    var title = str(raw.title), author = str(raw.author);
+    var title = clip(raw.title, LIMITS.title), author = clip(raw.author, LIMITS.author);
     if (!title || !author) return null;
     var year = parseInt(raw.year, 10);
     if (!year || isNaN(year) || year < -5000 || year > 2100) year = null;
@@ -1354,11 +1668,11 @@
       id: /^b-[a-z0-9]{1,16}(-[a-z0-9]{1,16}){1,2}$/.test(String(raw.id)) ? String(raw.id) : uid(),
       title: title,
       author: author,
-      genre: str(raw.genre),
+      genre: clip(raw.genre, LIMITS.genre),
       year: year,
       status: hasOwn(STATUS_LABELS, raw.status) ? raw.status : 'to-read',
       rating: rating,
-      notes: str(raw.notes),
+      notes: clip(raw.notes, LIMITS.notes),
       addedAt: added > 0 ? added : now,
       updatedAt: updated > 0 ? updated : now
     };
@@ -1367,6 +1681,11 @@
   backupFile.addEventListener('change', function () {
     var file = backupFile.files && backupFile.files[0];
     if (!file) return;
+    if (file.size > MAX_FILE_BYTES) {
+      showToast('That file is over 25 MB, so it can\u2019t be a backup.');
+      backupFile.value = '';
+      return;
+    }
     readText(file).then(function (raw) {
       var notBackup = new Error('That file isn\u2019t a Catalogue backup.');
       var data;
@@ -1440,7 +1759,8 @@
       var promptEvent = installEvent;
       installEvent = null;
       installGroup.hidden = true;
-      promptEvent.prompt();
+      var shown = promptEvent.prompt();
+      if (shown && shown.catch) shown.catch(function () {});
     } else if (isIos()) {
       showConfirm('To install on iPhone or iPad: tap the Share button, then choose \u201cAdd to Home Screen\u201d.', { ok: 'Got it', hideCancel: true });
     }
