@@ -21,9 +21,7 @@
 <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<!-- Loaded without blocking the first paint: if Google Fonts is slow or blocked, the page still appears (in Georgia and Courier New). -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap"></noscript>
+<!-- Fonts (Lora, Courier Prime) are added by the script once the page has loaded; see loadFonts() below. -->
 <style>
   :root {
     --ink: #2A2118;
@@ -160,8 +158,19 @@
     padding: 1.5rem 1.5rem 5rem;
     display: grid;
     grid-template-columns: 200px 1fr;
-    gap: 2rem;
+    grid-template-areas: "top content" "bottom content";
+    grid-template-rows: auto 1fr;
+    column-gap: 2rem;
+    row-gap: 1.75rem;
+    align-items: start;
   }
+  .rail-top { grid-area: top; }
+  .content { grid-area: content; min-width: 0; }
+  .rail-bottom { grid-area: bottom; }
+
+  /* Reachable only by keyboard: the first Tab stop lets people jump past the filters */
+  .skip-link { position: absolute; left: 1rem; top: -4rem; z-index: 100; }
+  .skip-link:focus { top: 1rem; }
 
   .rail { display: flex; flex-direction: column; gap: 1.75rem; }
 
@@ -408,12 +417,9 @@
   /* Phones: books first. Shelf and genre filters become swipeable rows above them,
      and the import/export tools move below the list. Desktop is unchanged. */
   @media (max-width: 720px) {
-    main { display: flex; flex-direction: column; gap: 1.1rem; padding-top: 1rem; }
-    .rail { display: contents; }
-    .rail-shelf { order: 1; }
-    .rail-genre { order: 2; }
-    .content { order: 3; margin-bottom: 1rem; }
-    .rail-tools { order: 4; }
+    main { display: flex; flex-direction: column; align-items: stretch; gap: 1.1rem; padding-top: 1rem; }
+    .rail { gap: 1.1rem; }
+    .content { margin-bottom: 1rem; }
 
     .rail-shelf h2, .rail-genre h2 { margin-bottom: 0.4rem; }
     .tab-list, .genre-chips { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.3rem; scrollbar-width: none; }
@@ -441,6 +447,8 @@
 </head>
 <body>
 
+<button type="button" class="btn btn-primary skip-link" id="skipLink">Skip to search</button>
+
 <noscript><p class="noscript">The Catalogue needs JavaScript to run. Please turn it on for this site.</p></noscript>
 
 <header>
@@ -456,7 +464,7 @@
 <div class="banner type-label" id="banner" role="status" hidden></div>
 
 <main>
-  <aside class="rail" aria-label="Filters and tools">
+  <aside class="rail rail-top" aria-label="Filters">
     <div class="rail-group rail-shelf" role="group" aria-labelledby="shelfHeading">
       <h2 id="shelfHeading">Shelf</h2>
       <div class="tab-list" id="statusTabs"></div>
@@ -465,6 +473,29 @@
       <h2 id="genreHeading">Genre</h2>
       <div class="genre-chips" id="genreChips"></div>
     </div>
+  </aside>
+
+  <section class="content" aria-label="Books">
+    <div class="content-top">
+      <div class="search-wrap" role="search">
+        <label for="search" class="visually-hidden">Search by title or author</label>
+        <input id="search" type="search" dir="auto" placeholder="Search title or author&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      </div>
+      <select class="sort-select" id="sortSelect" aria-label="Sort books">
+        <option value="added-desc">Recently added</option>
+        <option value="title-asc">Title A&ndash;Z</option>
+        <option value="author-asc">Author A&ndash;Z</option>
+        <option value="year-desc">Year, newest</option>
+        <option value="rating-desc">Rating, highest</option>
+      </select>
+      <button class="btn btn-primary" id="addBtn">+ Add a book</button>
+    </div>
+
+    <div id="resultsInfo" class="visually-hidden" role="status" aria-live="polite"></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <aside class="rail rail-bottom" aria-label="Import, export and app">
     <div class="rail-group rail-tools">
       <h2>Import</h2>
       <button class="rail-btn" id="importBtn">Import from CSV&hellip;</button>
@@ -482,26 +513,6 @@
       <button class="rail-btn" id="installBtn">Install The Catalogue</button>
     </div>
   </aside>
-
-  <section class="content" aria-label="Books">
-    <div class="content-top">
-      <div class="search-wrap" role="search">
-        <label for="search" class="visually-hidden">Search by title or author</label>
-        <input id="search" type="search" placeholder="Search title or author&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
-      </div>
-      <select class="sort-select" id="sortSelect" aria-label="Sort books">
-        <option value="added-desc">Recently added</option>
-        <option value="title-asc">Title A&ndash;Z</option>
-        <option value="author-asc">Author A&ndash;Z</option>
-        <option value="year-desc">Year, newest</option>
-        <option value="rating-desc">Rating, highest</option>
-      </select>
-      <button class="btn btn-primary" id="addBtn">+ Add a book</button>
-    </div>
-
-    <div id="resultsInfo" class="visually-hidden" role="status" aria-live="polite"></div>
-    <div class="grid" id="grid"></div>
-  </section>
 </main>
 
 <div class="overlay" id="overlay">
@@ -510,16 +521,16 @@
     <form id="bookForm">
       <div class="field">
         <label for="f-title">Title</label>
-        <input id="f-title" required maxlength="300" autocomplete="off" autocapitalize="words">
+        <input id="f-title" dir="auto" required maxlength="300" autocomplete="off" autocapitalize="words">
       </div>
       <div class="field">
         <label for="f-author">Author</label>
-        <input id="f-author" required maxlength="200" autocomplete="off" autocapitalize="words">
+        <input id="f-author" dir="auto" required maxlength="200" autocomplete="off" autocapitalize="words">
       </div>
       <div class="field-row">
         <div class="field">
           <label for="f-genre">Genre(s)</label>
-          <input id="f-genre" maxlength="200" placeholder="e.g. Fiction, Fantasy" autocomplete="off" autocapitalize="words">
+          <input id="f-genre" dir="auto" maxlength="200" placeholder="e.g. Fiction, Fantasy" autocomplete="off" autocapitalize="words">
         </div>
         <div class="field">
           <label for="f-year">Year</label>
@@ -542,7 +553,7 @@
       </div>
       <div class="field">
         <label for="f-notes">Notes</label>
-        <textarea id="f-notes" maxlength="5000" placeholder="Anything worth remembering&hellip;"></textarea>
+        <textarea id="f-notes" dir="auto" maxlength="5000" placeholder="Anything worth remembering&hellip;"></textarea>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-danger" id="deleteBtn" style="display:none;">Remove</button>
@@ -564,6 +575,7 @@
       <li>Goodreads shelves map to Want to read / Reading / Read.</li>
       <li>Your non-standard bookshelves (anything besides to-read/currently-reading/read) come in as genres, comma-separated.</li>
       <li>Files exported from The Catalogue keep their genre, year, status, rating and notes.</li>
+      <li>Files saved from Excel work too: semicolon- or tab-separated files and older Windows text encodings are recognised.</li>
     </ul>
     <div id="importResult" class="hint" role="status" style="display:none;"></div>
     <div class="modal-actions">
@@ -730,7 +742,8 @@
   // A small RFC 4180 parser (quoted fields, "" escapes, commas and line breaks inside quotes,
   // CRLF/LF/CR line endings, byte-order mark), so the app has no third-party script to load.
 
-  function parseCsv(text) {
+  function parseCsv(text, delim) {
+    delim = delim || ',';
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     var rows = [], row = [], field = '', inQuotes = false, i = 0, n = text.length, c;
     while (i < n) {
@@ -742,7 +755,7 @@
         } else { field += c; i++; }
       } else if (c === '"' && field === '') {
         inQuotes = true; i++;
-      } else if (c === ',') {
+      } else if (c === delim) {
         row.push(field); field = ''; i++;
       } else if (c === '\n' || c === '\r') {
         if (c === '\r' && text.charAt(i + 1) === '\n') i++;
@@ -756,16 +769,37 @@
     return rows;
   }
 
+  // Spreadsheets in many countries use ; (or a tab) between columns instead of a comma. Pick whichever appears
+  // most often on the header line, ignoring anything inside quotes.
+  function detectDelimiter(text) {
+    var counts = { ',': 0, ';': 0, '\t': 0 }, inQuotes = false;
+    for (var i = text.charCodeAt(0) === 0xFEFF ? 1 : 0; i < text.length && i < 20000; i++) {
+      var c = text.charAt(i);
+      if (c === '"') inQuotes = !inQuotes;
+      else if (!inQuotes) {
+        if (c === '\n' || c === '\r') break;
+        if (c in counts) counts[c]++;
+      }
+    }
+    var best = ',';
+    [';', '\t'].forEach(function (d) { if (counts[d] > counts[best]) best = d; });
+    return best;
+  }
+
   // First row is the header; blank lines are skipped. Returns { headers: [...], rows: [{header: value}] }.
   function csvToTable(text) {
-    var raw = parseCsv(text);
+    var hint = /^\uFEFF?sep=(.)\r?\n/i.exec(text);     // some exporters add a first line like "sep=;"
+    var delim;
+    if (hint) { delim = hint[1]; text = text.slice(hint[0].length); }
+    else delim = detectDelimiter(text);
+    var raw = parseCsv(text, delim);
     var headers = raw.length ? raw[0].map(function (h) { return String(h).trim(); }) : [];
     var rows = [];
     for (var r = 1; r < raw.length; r++) {
       var cells = raw[r];
       var blank = cells.every(function (v) { return String(v).trim() === ''; });
       if (blank) continue;
-      var obj = {};
+      var obj = Object.create(null);
       headers.forEach(function (h, idx) { if (h) obj[h] = cells[idx] !== undefined ? cells[idx] : ''; });
       rows.push(obj);
     }
@@ -795,7 +829,7 @@
 
   // Understands Goodreads' export and The Catalogue's own CSV export (matched by column names).
   function mapCsvRow(row) {
-    var lower = {};
+    var lower = Object.create(null);
     Object.keys(row).forEach(function (k) { lower[k.trim().toLowerCase()] = row[k]; });
 
     var title = clip(unCsvText(pick(lower, ['title'])), LIMITS.title);
@@ -877,6 +911,7 @@
   var resultsInfo = document.getElementById('resultsInfo');
   var searchBox = document.getElementById('search');
   var addBtn = document.getElementById('addBtn');
+  var skipLink = document.getElementById('skipLink');
 
   var PAGE_SIZE = 100;            // cards drawn at a time; "Show more" adds another page
   var visibleCount = PAGE_SIZE;
@@ -959,7 +994,42 @@
   // the page behind is switched off (inert), and focus goes back to where it came from.
 
   var overlayStack = [];
-  var pageRegions = [document.querySelector('header'), banner, document.querySelector('main')];
+
+  // While any dialog is open, one history entry stands for it, so the phone's Back gesture or button closes the dialog
+  // (asking first if it holds typing) instead of leaving the app. Closing a dialog by any other route gives the entry back.
+  var historyMarked = false;
+  var ownBackUntil = 0;             // history.back() calls we make ourselves are expected until this time
+
+  function markHistory() {
+    if (historyMarked) return;
+    try { history.pushState({ dialog: true }, ''); historyMarked = true; } catch (e) { /* history is unavailable here */ }
+  }
+
+  function releaseHistory() {
+    if (!historyMarked) return;
+    historyMarked = false;
+    ownBackUntil = Date.now() + 1500;
+    history.back();
+  }
+
+  window.addEventListener('popstate', function (e) {
+    var onDialogEntry = !!(e.state && e.state.dialog);           // the entry we have landed on was added for a dialog
+    if (Date.now() < ownBackUntil) {
+      ownBackUntil = 0;                                          // that was our own history.back()
+    } else {
+      historyMarked = false;                                     // the person pressed Back (or Forward): the entry we held is used up
+      if (overlayStack.length) {
+        var top = overlayStack[overlayStack.length - 1].el;
+        if (top === confirmOverlay) _resolveConfirm(false);
+        else if (top === overlay) requestCloseBookForm();
+        else closeOverlay(top);
+      }
+    }
+    if (overlayStack.length) { markHistory(); return; }          // a dialog is still open: keep Back working for it
+    if (onDialogEntry) { ownBackUntil = Date.now() + 1500; history.back(); }   // nothing open but parked on a dialog entry: step off it
+  });
+
+  var pageRegions = [skipLink, document.querySelector('header'), banner, document.querySelector('main')];
 
   function focusables(root) {
     return Array.prototype.filter.call(
@@ -977,6 +1047,7 @@
   function openOverlay(el, opts) {
     opts = opts || {};
     overlayStack.push({ el: el, returnTo: opts.returnTo || document.activeElement });
+    if (overlayStack.length === 1) markHistory();
     el.classList.add('open');
     syncInert();
     (opts.focus || el.querySelector('.modal')).focus();
@@ -1006,6 +1077,7 @@
     el.classList.remove('open');
     syncInert();
     restoreFocus(entry.returnTo);
+    if (!overlayStack.length) releaseHistory();
   }
 
   document.addEventListener('keydown', function (e) {
@@ -1104,9 +1176,26 @@
     notifyOtherWindows();
   }
 
+  // Writes that have started but are not yet stored. While there are any, the browser asks before the page is left,
+  // so closing the app in the instant after a big import can't silently lose it.
+  var pendingWrites = 0;
+  function tracked(promise) {
+    pendingWrites++;
+    var done = function () { pendingWrites--; };
+    promise.then(done, done);
+    return promise;
+  }
+  window.addEventListener('beforeunload', function (e) {
+    if (pendingWrites > 0) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  // Resolves to true once the books are stored, or false if that failed (in which case the person has been told).
   function saveBooks(records) {
     askForPersistentStorage();
-    return storage.putBooks(records).then(saveSucceeded, reportSaveError);
+    return tracked(storage.putBooks(records)).then(
+      function () { saveSucceeded(); return true; },
+      function (err) { reportSaveError(err); return false; }
+    );
   }
 
   // ---------- CRUD ----------
@@ -1129,7 +1218,7 @@
   function deleteBook(id) {
     if (!localBooks[id]) return;
     delete localBooks[id];
-    storage.deleteBook(id).then(saveSucceeded, reportSaveError);
+    tracked(storage.deleteBook(id)).then(saveSucceeded, reportSaveError);
     render();
     updateStatusUI();
   }
@@ -1287,9 +1376,9 @@
     var genres = genreList(b);
     return '<div class="card" role="button" tabindex="0" aria-haspopup="dialog" data-id="' + escapeHtml(b.id) + '" aria-label="' + escapeHtml(cardLabel(b)) + '">' +
       '<div class="callno type-label"><span>' + escapeHtml(callNumber(b)) + '</span></div>' +
-      '<h3>' + escapeHtml(b.title) + '</h3>' +
-      '<p class="author">' + escapeHtml(b.author) + (b.year ? ', ' + escapeHtml(formatYear(b.year)) : '') + '</p>' +
-      (genres.length ? '<p class="genre-tags type-label">' + genres.map(escapeHtml).join(' &middot; ') + '</p>' : '') +
+      '<h3 dir="auto">' + escapeHtml(b.title) + '</h3>' +
+      '<p class="author" dir="auto">' + escapeHtml(b.author) + (b.year ? ', ' + escapeHtml(formatYear(b.year)) : '') + '</p>' +
+      (genres.length ? '<p class="genre-tags type-label" dir="auto">' + genres.map(escapeHtml).join(' &middot; ') + '</p>' : '') +
       '<div class="meta-row">' +
       '<span class="status-stamp ' + (STATUS_CLASS[b.status] || '') + '">' + escapeHtml(STATUS_LABELS[b.status] || b.status) + '</span>' +
       (b.rating ? '<span class="stars" aria-hidden="true">' + renderStars(b.rating) + '</span>' : '<span></span>') +
@@ -1479,6 +1568,7 @@
   importOverlay.addEventListener('click', function (e) { if (e.target === importOverlay) closeOverlay(importOverlay); });
 
   addBtn.addEventListener('click', function () { openAdd(addBtn); });
+  skipLink.addEventListener('click', function () { searchBox.focus(); });
 
   // ---------- reading files ----------
 
@@ -1489,6 +1579,29 @@
       r.onload = function () { resolve(String(r.result)); };
       r.onerror = function () { reject(r.error || new Error('Could not read the file')); };
       r.readAsText(file);
+    });
+  }
+
+  // Spreadsheets save CSV in different encodings. Try UTF-8 first (Goodreads and this app write it), then UTF-16
+  // (Excel's "Unicode Text"), and fall back to Windows-1252, which is what Excel's plain "CSV" uses.
+  function decodeText(buffer) {
+    var bytes = new Uint8Array(buffer);
+    try {
+      if (bytes[0] === 0xFF && bytes[1] === 0xFE) return new TextDecoder('utf-16le').decode(bytes);
+      if (bytes[0] === 0xFE && bytes[1] === 0xFF) return new TextDecoder('utf-16be').decode(bytes);
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (e) {
+      return new TextDecoder('windows-1252').decode(bytes);
+    }
+  }
+
+  function readCsvFile(file) {
+    if (file.arrayBuffer) return file.arrayBuffer().then(decodeText);
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(decodeText(r.result)); };
+      r.onerror = function () { reject(r.error || new Error('Could not read the file')); };
+      r.readAsArrayBuffer(file);
     });
   }
 
@@ -1563,7 +1676,10 @@
       csvFile.value = '';
       return;
     }
-    readText(file).then(function (text) {
+    var chooseBtn = document.getElementById('importChooseBtn');
+    chooseBtn.disabled = true;
+    chooseBtn.textContent = 'Importing\u2026';
+    readCsvFile(file).then(function (text) {
       var table = csvToTable(text);
       var lower = table.headers.map(normKey);
       if (lower.indexOf('title') === -1 || lower.indexOf('author') === -1) {
@@ -1571,17 +1687,26 @@
         return;
       }
       var r = importRows(table.rows);
-      saveBooks(r.toSave);
       render();
       updateStatusUI();
-      showImportResult('Imported ' + plural(r.added, 'new book') + '.' +
-        (r.updated ? ' Added genres to ' + plural(r.updated, 'already-catalogued book') + '.' : '') +
-        (r.skipped ? ' ' + r.skipped + ' already up to date.' : '') +
-        (r.invalid ? ' Skipped ' + plural(r.invalid, 'row') + ' missing a title or author.' : ''));
-      showToast('Import complete \u2014 ' + r.added + ' added, ' + r.updated + ' updated');
+      return saveBooks(r.toSave).then(function (saved) {
+        if (!saved) {
+          showImportResult('The books were added, but this device could not store them. See the message at the top of the page.');
+          return;
+        }
+        showImportResult('Imported ' + plural(r.added, 'new book') + '.' +
+          (r.updated ? ' Added genres to ' + plural(r.updated, 'already-catalogued book') + '.' : '') +
+          (r.skipped ? ' ' + r.skipped + ' already up to date.' : '') +
+          (r.invalid ? ' Skipped ' + plural(r.invalid, 'row') + ' missing a title or author.' : ''));
+        showToast('Import complete \u2014 ' + r.added + ' added, ' + r.updated + ' updated');
+      });
     }).catch(function (err) {
       showImportResult('Could not read that file: ' + (err && err.message ? err.message : 'unknown error'));
-    }).then(function () { csvFile.value = ''; });
+    }).then(function () {
+      csvFile.value = '';
+      chooseBtn.disabled = false;
+      chooseBtn.textContent = 'Choose CSV file';
+    });
   });
 
   // ---------- saving files out (backup and CSV) ----------
@@ -1616,7 +1741,7 @@
 
   function markBackedUp() {
     meta.lastBackupAt = Date.now();
-    storage.saveMeta().catch(function () {});
+    tracked(storage.saveMeta()).catch(function () {});
     updateStatusUI();
   }
 
@@ -1716,10 +1841,11 @@
         if (!yes) return;
         var records = toAdd.concat(toUpdate);
         records.forEach(function (b) { localBooks[b.id] = b; });
-        saveBooks(records);
         render();
         updateStatusUI();
-        showToast('Restored ' + plural(records.length, 'book'));
+        return saveBooks(records).then(function (saved) {
+          if (saved) showToast('Restored ' + plural(records.length, 'book'));
+        });
       });
     }).catch(function (err) {
       showToast(err && err.message ? err.message : 'Could not read that file.');
@@ -1766,18 +1892,34 @@
     }
   });
 
-  // ---------- offline support ----------
+  // ---------- fonts and offline support ----------
+
+  // Runs a function once the page has finished loading (straight away if it already has).
+  function afterLoad(fn) {
+    if (document.readyState === 'complete') setTimeout(fn, 0);
+    else window.addEventListener('load', fn);
+  }
+
+  // Must match FONT_CSS in sw.js exactly, so the copy saved for offline use is the one that gets used.
+  var FONT_CSS_URL = 'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap';
+
+  // Requested only after the page has loaded, so a slow or blocked font server can never hold the page up
+  // (or stop the offline service worker from registering). The app shows in Georgia and Courier New first, then swaps.
+  function loadFonts() {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = FONT_CSS_URL;
+    document.head.appendChild(link);
+  }
 
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').then(function (reg) {
-        // check for a newer version whenever the app comes back to the foreground
-        document.addEventListener('visibilitychange', function () {
-          if (document.visibilityState === 'visible') reg.update().catch(function () {});
-        });
-      }).catch(function (err) { console.warn('Offline mode unavailable:', err && err.message); });
-    });
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      // check for a newer version whenever the app comes back to the foreground
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') reg.update().catch(function () {});
+      });
+    }).catch(function (err) { console.warn('Offline mode unavailable:', err && err.message); });
   }
 
   // ---------- boot ----------
@@ -1785,8 +1927,8 @@
   // The manifest's "Add a book" shortcut opens the app at ?add=1
   function launchActions() {
     if (/[?&]add=1(&|$)/.test(location.search)) {
-      openAdd();
       if (window.history && history.replaceState) history.replaceState(null, '', location.pathname);
+      openAdd();
     }
   }
 
@@ -1794,7 +1936,20 @@
     if (document.visibilityState === 'visible') updateStatusUI();
   });
 
+  // If the browser's storage never answers (it has happened on some Safari versions), say so instead of leaving "Loading…".
+  var booted = false;
+  var slowBoot = setTimeout(function () {
+    if (!booted) showBanner('Still opening your books\u2026 If nothing appears, close the app and open it again.', 'boot');
+  }, 6000);
+
+  function bootFinished() {
+    booted = true;
+    clearTimeout(slowBoot);
+    if (banner.getAttribute('data-kind') === 'boot') banner.hidden = true;
+  }
+
   storage.init().then(function (state) {
+    bootFinished();
     localBooks = state.books;
     meta = state.meta || {};
     render();
@@ -1804,11 +1959,13 @@
     }
     launchActions();
   }).catch(function (err) {
+    bootFinished();
     console.error(err);
     showBanner('The catalogue couldn\u2019t be opened' + (err && err.message ? ': ' + err.message : '.'));
   });
 
-  registerServiceWorker();
+  afterLoad(loadFonts);
+  afterLoad(registerServiceWorker);
 })();
 </script>
 </body>

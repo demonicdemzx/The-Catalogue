@@ -10,7 +10,7 @@
  *
  * Bump VERSION if you change the CORE or EXTRAS lists or this file's logic.
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 // Cache names keep their original spelling so existing installs clean up their old copies correctly.
 const SHELL_CACHE = 'catalog-shell-' + VERSION;
 const FONT_CACHE = 'catalog-fonts';
@@ -39,12 +39,24 @@ const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 // 'reload' skips the browser's HTTP cache so a new install never saves stale files
 const fresh = (url) => new Request(url, { cache: 'reload' });
 
+// A font server that never answers (blocked or blackholed networks) must not hold anything up.
+async function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { mode: 'cors', signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
     await cache.addAll(CORE.map(fresh));
     await Promise.allSettled(EXTRAS.map((url) => cache.add(fresh(url))));
-    await precacheFonts().catch(() => {});   // best effort: fonts are cosmetic
+    // Fonts are cosmetic: give them a few seconds, then finish installing without them (they are saved on first use instead).
+    await Promise.race([precacheFonts().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 5000))]);
     await self.skipWaiting();
   })());
 });
@@ -101,13 +113,13 @@ async function savedThenRefresh(event, target) {
 
 async function precacheFonts() {
   const cache = await caches.open(FONT_CACHE);
-  const cssResponse = await fetch(FONT_CSS, { mode: 'cors' });
+  const cssResponse = await fetchWithTimeout(FONT_CSS, 8000);
   if (!cssResponse.ok) return;
   const css = await cssResponse.clone().text();
   await cache.put(FONT_CSS, cssResponse);
   const files = [...css.matchAll(/url\((https:[^)]+)\)/g)].map((m) => m[1]);
   await Promise.all(files.map(async (file) => {
-    const response = await fetch(file, { mode: 'cors' });
+    const response = await fetchWithTimeout(file, 8000);
     if (response.ok) await cache.put(file, response);
   }));
 }
@@ -120,7 +132,7 @@ async function fontResponse(request) {
   try {
     // Google Fonts allows cross-origin reads. Fetching in that mode gives a readable response we can check and keep,
     // rather than an opaque one (which browsers count as ~7 MB of storage each).
-    const response = await fetch(request.url, { mode: 'cors' });
+    const response = await fetchWithTimeout(request.url, 10000);
     if (response.ok) cache.put(request.url, response.clone());
     return response;
   } catch (err) {
