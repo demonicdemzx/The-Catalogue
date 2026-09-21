@@ -1,6 +1,6 @@
 # The Catalogue
 
-A private catalogue for me.
+A private catalogue for me, not intuitive at all, works offline, import from goodreads works, haven't tested export on anything, use if you want.
 
 | File | What it is |
 | --- | --- |
