@@ -1,6 +1,6 @@
 # The Catalogue
 
-A private catalogue for me, not intuitive at all, works offline, import from goodreads works, haven't tested export on anything, no search function for adding books, after import you will have to manually add every book you want in the library. Use if you want, but don't expect anything good.
+A private catalogue for me, not intuitive at all, works offline, import from goodreads works, haven't tested export on anything, no search function for adding books, after import you will have to manually add every book you want in the library. Made it to degoogle and not be on amazon. Use if you want, but don't expect anything good.
 
 | File | What it is |
 | --- | --- |
